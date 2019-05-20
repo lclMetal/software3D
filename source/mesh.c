@@ -3,35 +3,37 @@
 // tutorial-series-learning-how-to-write-a-3d-soft-engine-from-scratch-in-c-
 // typescript-or-javascript/
 
-typedef struct Vector3Struct
+typedef struct VertexStruct
 {
     double x;
     double y;
     double z;
-}Vector3;
+    double w;
+}Vertex;
 
 typedef struct CameraStruct
 {
-    Vector3 position;
-    Vector3 target;
+    Vertex position;
+    Vertex target;
 }Camera;
 
 typedef struct MeshStruct
 {
     char name[256];
     int vertexCount;
-    Vector3* vertices;
-    Vector3 position;
-    Vector3 rotation;
+    Vertex* vertices;
+    Vertex position;
+    Vertex rotation;
 }Mesh;
 
-Vector3 createVector3(double vx, double vy, double vz)
+Vertex createVertex(double vx, double vy, double vz, double vw)
 {
-    Vector3 v;
+    Vertex v;
 
     v.x = vx;
     v.y = vy;
     v.z = vz;
+    v.w = vw;
 
     return v;
 }
@@ -58,7 +60,7 @@ Mesh *newMesh(char meshName[256], int vertexCount)
     return ptr;
 }
 
-int setMeshVertex(Mesh *targetMesh, int vertexNum, Vector3 vertex)
+int setMeshVertex(Mesh *targetMesh, int vertexNum, Vertex vertex)
 {
     if (!targetMesh) return -1;
     if (vertexNum < 0 || vertexNum >= targetMesh->vertexCount) return -2;
