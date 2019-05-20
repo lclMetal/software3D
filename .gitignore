@@ -1,0 +1,11 @@
+# Game Editor undo files
+*.ged.undo
+
+# Game Editor undo temp files
+*.ged.undo.tmp
+
+# Debug log files
+*.log
+
+# Executables
+*.exe
