@@ -25,6 +25,17 @@ typedef struct MeshStruct
     Vector3 rotation;
 }Mesh;
 
+Vector3 createVector3(double vx, double vy, double vz)
+{
+    Vector3 v;
+
+    v.x = vx;
+    v.y = vy;
+    v.z = vz;
+
+    return v;
+}
+
 Mesh *newMesh(char meshName[256], int vertexCount)
 {
     Mesh *ptr = NULL;
@@ -45,6 +56,16 @@ Mesh *newMesh(char meshName[256], int vertexCount)
     strcpy(ptr->name, meshName);
 
     return ptr;
+}
+
+int setMeshVertex(Mesh *targetMesh, int vertexNum, Vector3 vertex)
+{
+    if (!targetMesh) return -1;
+    if (vertexNum < 0 || vertexNum >= targetMesh->vertexCount) return -2;
+
+    targetMesh->vertices[vertexNum] = vertex;
+
+    return 0;
 }
 
 void destroyMesh(Mesh *ptr)
