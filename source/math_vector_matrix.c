@@ -72,19 +72,16 @@ Quaternion vectorToQuaternion(Vector3 vector, double scalar)
     return q;
 }
 
-// checked to match microsoft
 double dotProductVector3(Vector3 a, Vector3 b)
 {
     return a.x * b.x + a.y * b.y + a.z * b.z;
 }
 
-// checked to match microsoft
 Vector3 subtractVector3(Vector3 a, Vector3 b)
 {
     return createVector3(a.x - b.x, a.y - b.y, a.z - b.z);
 }
 
-// checked to match microsoft
 Vector3 crossProductVector3(Vector3 a, Vector3 b)
 {
     Vector3 vector;
@@ -96,13 +93,11 @@ Vector3 crossProductVector3(Vector3 a, Vector3 b)
     return vector;
 }
 
-// checked to match microsoft
 double magnitudeVector3(Vector3 vector)
 {
     return sqrt(dotProductVector3(vector, vector));
 }
 
-// checked to match microsoft
 Vector3 scaleVector3(Vector3 vector, double scale)
 {
     Vector3 result;
@@ -114,7 +109,6 @@ Vector3 scaleVector3(Vector3 vector, double scale)
     return result;
 }
 
-// checked to match microsoft
 Vector3 normalizeVector3(Vector3 vector)
 {
     double magnitude = magnitudeVector3(vector);
@@ -141,18 +135,14 @@ Point2D createPoint2D(double px, double py)
 Point2D project(Screen *screen, Vector3 vertex, Matrix4x4 matrix)
 {
     Point2D result;
-    Vector3 transformed = normalizeVector3(transformVector3ByMatrix4x4(vertex, matrix));
+    Vector3 transformed = transformVector3ByMatrix4x4(vertex, matrix);
 
-    result.x = transformed.x * (screen->width * 0.5) + screen->width / 2.0;
-    result.y = -transformed.y * (screen->height * 0.5) + screen->height / 2.0;
-
-    // result.x = transformed.x + screen->width / 2.0f;
-    // result.y = transformed.y + screen->height / 2.0f;
+    result.x = transformed.x * screen->width + screen->width / 2.0;
+    result.y = -transformed.y * screen->height + screen->height / 2.0;
 
     return result;
 }
 
-// checked to match microsoft
 Matrix4x4 lookAt(Vector3 cameraPosition, Vector3 cameraTarget, Vector3 cameraUp)
 {
     Matrix4x4 result;
@@ -184,109 +174,6 @@ Matrix4x4 lookAt(Vector3 cameraPosition, Vector3 cameraTarget, Vector3 cameraUp)
     return result;
 }
 
-// yaw   - rotation around Y-axis
-// pitch - rotation around X-axis
-// roll  - rotation around Z-axis
-// source: https://referencesource.microsoft.com/System.Numerics/R/062fb725b5ca1d1e.html
-/*Quaternion rotationYawPitchRollQuaternion(double yaw, double pitch, double roll)
-{
-    Quaternion result;
-    double sr, cr, sp, cp, sy, cy;
-
-    double halfRoll = roll * 0.5;
-    sr = sin(halfRoll);
-    cr = cos(halfRoll);
-
-    double halfPitch = pitch * 0.5;
-    sp = sin(halfPitch);
-    cp = cos(halfPitch);
-
-    double halfYaw = yaw = 0.5;
-    sy = sin(halfYaw);
-    cy = cos(halfYaw);
-
-    result.x = cy * sp * cr + sy * cp * sr;
-    result.y = sy * cp * cr - cy * sp * sr;
-    result.z = cy * cp * sr - sy * sp * cr;
-    result.w = cy * cp * cr + sy * sp * sr;
-
-    result.x = cy * sp * cr + sy * cp * sr;
-    result.y = sy * cp * cr - cy * sp * sr;
-    result.z = cy * cp * sr - sy * sp * cr;
-    result.w = cy * cp * cr + sy * sp * sr;
-
-    return result;
-}*/
-
-// yaw   - rotation around Y-axis
-// pitch - rotation around X-axis
-// roll  - rotation around Z-axis
-// source: https://referencesource.microsoft.com/System.Numerics/R/3ec84882419cf4f6.html
-// source: https://referencesource.microsoft.com/System.Numerics/R/062fb725b5ca1d1e.html
-// checked to match microsoft
-Matrix4x4 rotationYawPitchRoll(double yaw, double pitch, double roll)
-{
-    Matrix4x4 result;
-    Quaternion quaternion;
-    double halfRoll, halfPitch, halfYaw;
-    double sr, cr, sp, cp, sy, cy;
-    double xx, yy, zz, xy, wz, xz, wy, yz, wx;
-
-    halfRoll = roll * 0.5;
-    sr = sin(halfRoll);
-    cr = cos(halfRoll);
-
-    halfPitch = pitch * 0.5;
-    sp = sin(halfPitch);
-    cp = cos(halfPitch);
-
-    halfYaw = yaw = 0.5;
-    sy = sin(halfYaw);
-    cy = cos(halfYaw);
-
-    quaternion.x = cy * sp * cr + sy * cp * sr;
-    quaternion.y = sy * cp * cr - cy * sp * sr;
-    quaternion.z = cy * cp * sr - sy * sp * cr;
-    quaternion.w = cy * cp * cr + sy * sp * sr;
-
-    quaternion.x = cy * sp * cr + sy * cp * sr;
-    quaternion.y = sy * cp * cr - cy * sp * sr;
-    quaternion.z = cy * cp * sr - sy * sp * cr;
-    quaternion.w = cy * cp * cr + sy * sp * sr;
-
-    xx = quaternion.x * quaternion.x;
-    yy = quaternion.y * quaternion.y;
-    zz = quaternion.z * quaternion.z;
-    xy = quaternion.x * quaternion.y;
-    wz = quaternion.w * quaternion.z;
-    xz = quaternion.x * quaternion.z;
-    wy = quaternion.w * quaternion.y;
-    yz = quaternion.y * quaternion.z;
-    wx = quaternion.w * quaternion.x;
-
-    result.matrix[0][0] = 1.0 - 2.0 * (yy + zz);
-    result.matrix[0][1] = 2.0 * (xy + wz);
-    result.matrix[0][2] = 2.0 * (xz - wy);
-    result.matrix[0][3] = 0.0;
-
-    result.matrix[1][0] = 2.0 * (xy - wz);
-    result.matrix[1][1] = 1.0 - 2.0 * (zz + xx);
-    result.matrix[1][2] = 2.0 * (yz + wx);
-    result.matrix[1][3] = 0.0;
-
-    result.matrix[2][0] = 2.0 * (xz + wy);
-    result.matrix[2][1] = 2.0 * (yz - wx);
-    result.matrix[2][2] = 1.0 - 2.0 * (yy + xx);
-    result.matrix[2][3] = 0.0;
-
-    result.matrix[3][0] = 0.0;
-    result.matrix[3][1] = 0.0;
-    result.matrix[3][2] = 0.0;
-    result.matrix[3][3] = 1.0;
-
-    return result;
-}
-
 Matrix4x4 rotationXYZ(double x, double y, double z)
 {
     Matrix4x4 result;
@@ -308,7 +195,7 @@ Matrix4x4 rotationXYZ(double x, double y, double z)
 
     result.matrix[0][0] =  ycos * zcos;
     result.matrix[0][1] =  zcosxsin * ysin + xcos * zsin;
-    result.matrix[0][2] = -xcoszcos * ysin + xsin * zsin;
+    result.matrix[0][2] =  -xcoszcos * ysin + xsin * zsin;
     result.matrix[0][3] =  0.0;
 
     result.matrix[1][0] =  -ycos * zsin;
@@ -325,34 +212,6 @@ Matrix4x4 rotationXYZ(double x, double y, double z)
     result.matrix[3][1] =  0.0;
     result.matrix[3][2] =  0.0;
     result.matrix[3][3] =  1.0;
-
-    return result;
-}
-
-// checked to match microsoft
-Matrix4x4 perspectiveLH(double width, double height, double near, double far)
-{
-    Matrix4x4 result;
-
-    result.matrix[0][0] = 2.0 * near / width;
-    result.matrix[0][1] = 0;
-    result.matrix[0][2] = 0;
-    result.matrix[0][3] = 0;
-
-    result.matrix[1][0] = 0;
-    result.matrix[1][1] = 2.0 * near / height;
-    result.matrix[1][2] = 0;
-    result.matrix[1][3] = 0;
-
-    result.matrix[2][0] = 0;
-    result.matrix[2][1] = 0;
-    result.matrix[2][2] = far / (near - far);
-    result.matrix[2][3] = -1.0;
-
-    result.matrix[3][0] = 0;
-    result.matrix[3][1] = 0;
-    result.matrix[3][2] = near * far / (near - far);
-    result.matrix[3][3] = 0;
 
     return result;
 }
@@ -409,48 +268,6 @@ Matrix4x4 perspectiveFov(double fov, double aspectRatio, double near, double far
     return result;
 }
 
-/*Matrix4x4 perspective(double fov, double aspect, double near, double far)
-{
-    Matrix4x4 result;
-
-    /*double w;
-    double h;
-
-    h = 1.0 / tan(fov / 2);
-    w = h * aspect;*/
-
-
-
-
-
-    /*double yScale = 1.0 / (double)tan(fov * 0.5);
-    double xScale = yScale * (double)aspect;
-    double nearMinusFarInverse = 1.0 / (double)(near - far);
-
-    result.matrix[0][0] = xScale;
-    result.matrix[0][1] = 0;
-    result.matrix[0][2] = 0;
-    result.matrix[0][3] = 0;
-
-    result.matrix[1][0] = 0;
-    result.matrix[1][1] = yScale;
-    result.matrix[1][2] = 0;
-    result.matrix[1][3] = 0;
-
-    result.matrix[2][0] = 0;
-    result.matrix[2][1] = 0;
-    result.matrix[2][2] = far / (double)(near - far);//(near + far) * nearMinusFarInverse;
-    result.matrix[2][3] = -1.0;
-
-    result.matrix[3][0] = 0;
-    result.matrix[3][1] = 0;
-    result.matrix[3][2] = near * far / (double)(near - far); // 2.0 * near * far * nearMinusFarInverse;
-    result.matrix[3][3] = 0;
-
-    return result;*/
-//}
-
-// checked to match microsoft
 Matrix4x4 translation(double x, double y, double z)
 {
     Matrix4x4 result;
@@ -478,63 +295,24 @@ Matrix4x4 translation(double x, double y, double z)
     return result;
 }
 
-/*Matrix4x4 translation(double x, double y, double z)
-{
-    Matrix4x4 result;
-
-    result.matrix[0][0] = 1;
-    result.matrix[0][1] = 0;
-    result.matrix[0][2] = 0;
-    result.matrix[0][3] = x;
-
-    result.matrix[1][0] = 0;
-    result.matrix[1][1] = 1;
-    result.matrix[1][2] = 0;
-    result.matrix[1][3] = y;
-
-    result.matrix[2][0] = 0;
-    result.matrix[2][1] = 0;
-    result.matrix[2][2] = 1;
-    result.matrix[2][3] = z;
-
-    result.matrix[3][0] = 0;
-    result.matrix[3][1] = 0;
-    result.matrix[3][2] = 0;
-    result.matrix[3][3] = 1;
-
-    return result;
-}*/
-
-// checked to match microsoft
 Vector3 transformVector3ByMatrix4x4(Vector3 vector, Matrix4x4 matrix)
 {
+    Quaternion quaternion;
     Vector3 result;
 
-    result.x = matrix.matrix[0][0] * vector.x + matrix.matrix[1][0] * vector.y +
-               matrix.matrix[2][0] * vector.z + matrix.matrix[3][0];
-    result.y = matrix.matrix[0][1] * vector.x + matrix.matrix[1][1] * vector.y +
-               matrix.matrix[2][1] * vector.z + matrix.matrix[3][1];
-    result.z = matrix.matrix[0][2] * vector.x + matrix.matrix[1][2] * vector.y +
-               matrix.matrix[2][2] * vector.z + matrix.matrix[3][2];
+    quaternion.x = matrix.matrix[0][0] * vector.x + matrix.matrix[1][0] * vector.y +
+                   matrix.matrix[2][0] * vector.z + matrix.matrix[3][0];
+    quaternion.y = matrix.matrix[0][1] * vector.x + matrix.matrix[1][1] * vector.y +
+                   matrix.matrix[2][1] * vector.z + matrix.matrix[3][1];
+    quaternion.z = matrix.matrix[0][2] * vector.x + matrix.matrix[1][2] * vector.y +
+                   matrix.matrix[2][2] * vector.z + matrix.matrix[3][2];
+    quaternion.w = 1.0 / (matrix.matrix[0][3] * vector.x + matrix.matrix[1][3] * vector.y +
+                          matrix.matrix[2][3] * vector.z + matrix.matrix[3][3]);
+    result = createVector3(quaternion.x * quaternion.w, quaternion.y * quaternion.w, quaternion.z * quaternion.w);
 
     return result;
 }
 
-/*Vector3 multiplyVector3ByMatrix4x4(Vector3 vector, Matrix4x4 matrix)
-{
-    Vector3 result;
-
-    result.x = matrix.matrix[0][0] * vector.x + matrix.matrix[0][1] * vector.y +
-               matrix.matrix[0][2] * vector.z + matrix.matrix[0][3] * 1.0;
-    result.y = matrix.matrix[1][0] * vector.x + matrix.matrix[1][1] * vector.y +
-               matrix.matrix[1][2] * vector.z + matrix.matrix[1][3] * 1.0;
-    result.z = matrix.matrix[2][0] * vector.x + matrix.matrix[2][1] * vector.y +
-               matrix.matrix[2][2] * vector.z + matrix.matrix[2][3] * 1.0;
-
-    return result;
-}*/
-
-// checked to match microsoft
 Matrix4x4 multiplyMatrix4x4ByMatrix4x4(Matrix4x4 ma, Matrix4x4 mb)
 {
     Matrix4x4 result;

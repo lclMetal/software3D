@@ -36,10 +36,6 @@ short mode = 0;
 
 const Matrix4x4 emptyMatrix2;
 
-// source:
-// https://stackoverflow.com/questions/8875909/model-lookat-matrix-c-opengl
-
-
 Mesh *newMesh(char meshName[256], int vertexCount)
 {
     Mesh *ptr = NULL;
@@ -153,11 +149,8 @@ void renderScreen(Screen *ptr)
 
 void putPixelOnScreen(Screen *ptr, short x, short y, unsigned char r, unsigned char g, unsigned char b)
 {
-    char temp[128];
     if (!ptr) return;
 
-    sprintf(temp, "x: %i, y: %i, buffer: %i", x, y, y * ptr->width * 3 + x * 3);
-    // DEBUG_MSG(temp);
     ptr->buffer[y * ptr->width * 3 + x * 3] = r;
     ptr->buffer[y * ptr->width * 3 + x * 3 + 1] = g;
     ptr->buffer[y * ptr->width * 3 + x * 3 + 2] = b;
@@ -184,8 +177,6 @@ void renderMesh(Screen *screen, Camera *camera, Mesh *mesh)
 {
     int i;
     Matrix4x4 viewMatrix = lookAt(camera->position, camera->target, createVector3(0, 1, 0));
-    /*Matrix4x4 projectionMatrix =
-        perspectiveLH(screen->width, screen->height, 30.0, 0.0);*/
     Matrix4x4 projectionMatrix =
         perspectiveFov(PI/3.0, (double)screen->width / (double)screen->height, 0.01, 1000.0);
 
@@ -199,31 +190,16 @@ void renderMesh(Screen *screen, Camera *camera, Mesh *mesh)
     mesh->rotation = createVector3(0.0, 0.0, 0.0);
 
     worldMatrix =
-    multiplyMatrix4x4ByMatrix4x4(
-    /*rotationYawPitchRoll(mesh->rotation.y, mesh->rotation.z, mesh->rotation.x),*/
-    /*rotationXYZ(mesh->rotation.x, mesh->rotation.y, mesh->rotation.z),*/
-    mesh->orientation,
-    translation(mesh->position.x, mesh->position.y, mesh->position.z));
+        multiplyMatrix4x4ByMatrix4x4(mesh->orientation,
+            translation(mesh->position.x, mesh->position.y, mesh->position.z));
 
     tempMatrix = multiplyMatrix4x4ByMatrix4x4(worldMatrix, viewMatrix);
     transformMatrix = multiplyMatrix4x4ByMatrix4x4(tempMatrix, projectionMatrix);
-    //multiplyMatrix4x4ByMatrix4x4(multiplyMatrix4x4ByMatrix4x4(worldMatrix, viewMatrix), projectionMatrix);
-    /*Matrix4x4 transformMatrix =
-    multiplyMatrix4x4ByMatrix4x4(projectionMatrix,
-    multiplyMatrix4x4ByMatrix4x4(worldMatrix, viewMatrix));*/
-    /*Matrix4x4 transformMatrix =
-    multiplyMatrix4x4ByMatrix4x4(multiplyMatrix4x4ByMatrix4x4(projectionMatrix,
-    viewMatrix), worldMatrix);*/
 
     for (i = 0; i < mesh->vertexCount; i ++)
     {
         char temp[128];
         Point2D point;
-        /*sprintf(temp, "vertex:   %f, %f, %f\nposition: %f, %f, %f\nrotation: %f, %f, %f",
-            mesh->vertices[i].x, mesh->vertices[i].y, mesh->vertices[i].z,
-            mesh->position.x, mesh->position.y, mesh->position.z,
-            mesh->rotation.x, mesh->rotation.y, mesh->rotation.z);
-        DEBUG_MSG(temp);*/
 
         switch (mode)
         {
