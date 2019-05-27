@@ -1,3 +1,9 @@
+typedef struct Point2DStruct
+{
+    double x;
+    double y;
+}Point2D;
+
 typedef struct Vector3Struct
 {
     double x;
@@ -18,23 +24,46 @@ typedef struct Matrix4x4Struct
     double matrix[4][4];
 }Matrix4x4;
 
-typedef struct Point2DStruct
-{
-    double x;
-    double y;
-}Point2D;
-
-typedef struct ScreenStruct
-{
-    short width;
-    short height;
-}Screen;
-
-Screen screen;
-
 const Matrix4x4 emptyMatrix;
 
-Vector3 transformVector3ByMatrix4x4(Vector3 vector, Matrix4x4 matrix);
+Point2D createPoint2D(double x, double y);
+Point2D project(short width, short height, Vector3 vertex, Matrix4x4 projectionMatrix);
+Vector3 createVector3(double x, double y, double z);
+Vector3 scaleVector3(Vector3 vector, double scale);
+Vector3 normalizeVector3(Vector3 vector);
+Vector3 subtractVector3(Vector3 a, Vector3 b);
+Vector3 crossProductVector3(Vector3 a, Vector3 b);
+double dotProductVector3(Vector3 a, Vector3 b);
+double magnitudeVector3(Vector3 vector);
+Vector3 transformVector3ByMatrix(Vector3 vector, Matrix4x4 matrix);
+Quaternion createQuaternion(double x, double y, double z, double w);
+Quaternion vectorToQuaternion(Vector3 vector, double scalar);
+Matrix4x4 createLookAtMatrix(Vector3 cameraPosition, Vector3 cameraTarget, Vector3 cameraUp);
+Matrix4x4 createRotationXYZMatrix(double x, double y, double z);
+Matrix4x4 createPerspectiveMatrix(double fov, double aspectRatio, double near, double far);
+Matrix4x4 createTranslationMatrix(double x, double y, double z);
+Matrix4x4 multiplyMatrices(Matrix4x4 a, Matrix4x4 b);
+
+Point2D createPoint2D(double x, double y)
+{
+    Point2D p;
+
+    p.x = x;
+    p.y = y;
+
+    return p;
+}
+
+Point2D project(short width, short height, Vector3 vertex, Matrix4x4 projectionMatrix)
+{
+    Point2D result;
+    Vector3 transformed = transformVector3ByMatrix(vertex, projectionMatrix);
+
+    result.x = transformed.x * width + width / 2.0;
+    result.y = -transformed.y * height + height / 2.0;
+
+    return result;
+}
 
 Vector3 createVector3(double x, double y, double z)
 {
@@ -45,56 +74,6 @@ Vector3 createVector3(double x, double y, double z)
     vector.z = z;
 
     return vector;
-}
-
-Quaternion createQuaternion(double x, double y, double z, double w)
-{
-    Quaternion q;
-
-    q.x = x;
-    q.y = y;
-    q.z = z;
-    q.w = w;
-
-    return q;
-}
-
-Quaternion vectorToQuaternion(Vector3 vector, double scalar)
-{
-    Quaternion q;
-
-    q.x = vector.x;
-    q.y = vector.y;
-    q.z = vector.z;
-    q.w = scalar;
-
-    return q;
-}
-
-double dotProductVector3(Vector3 a, Vector3 b)
-{
-    return a.x * b.x + a.y * b.y + a.z * b.z;
-}
-
-Vector3 subtractVector3(Vector3 a, Vector3 b)
-{
-    return createVector3(a.x - b.x, a.y - b.y, a.z - b.z);
-}
-
-Vector3 crossProductVector3(Vector3 a, Vector3 b)
-{
-    Vector3 vector;
-
-    vector.x = a.y * b.z - a.z * b.y;
-    vector.y = a.z * b.x - a.x * b.z;
-    vector.z = a.x * b.y - a.y * b.x;
-
-    return vector;
-}
-
-double magnitudeVector3(Vector3 vector)
-{
-    return sqrt(dotProductVector3(vector, vector));
 }
 
 Vector3 scaleVector3(Vector3 vector, double scale)
@@ -121,28 +100,87 @@ Vector3 normalizeVector3(Vector3 vector)
     return scaleVector3(vector, 1.0 / magnitude);
 }
 
-Point2D createPoint2D(double x, double y)
+Vector3 subtractVector3(Vector3 a, Vector3 b)
 {
-    Point2D p;
-
-    p.x = x;
-    p.y = y;
-
-    return p;
+    return createVector3(a.x - b.x, a.y - b.y, a.z - b.z);
 }
 
-Point2D project(Screen *screen, Vector3 vertex, Matrix4x4 matrix)
+Vector3 crossProductVector3(Vector3 a, Vector3 b)
 {
-    Point2D result;
-    Vector3 transformed = transformVector3ByMatrix4x4(vertex, matrix);
+    Vector3 vector;
 
-    result.x = transformed.x * screen->width + screen->width / 2.0;
-    result.y = -transformed.y * screen->height + screen->height / 2.0;
+    vector.x = a.y * b.z - a.z * b.y;
+    vector.y = a.z * b.x - a.x * b.z;
+    vector.z = a.x * b.y - a.y * b.x;
+
+    return vector;
+}
+
+double dotProductVector3(Vector3 a, Vector3 b)
+{
+    return a.x * b.x + a.y * b.y + a.z * b.z;
+}
+
+double magnitudeVector3(Vector3 vector)
+{
+    return sqrt(dotProductVector3(vector, vector));
+}
+
+Vector3 transformVector3ByMatrix(Vector3 vector, Matrix4x4 matrix)
+{
+    double divisor;
+    Quaternion quaternion;
+    Vector3 result;
+
+    quaternion.x = matrix.matrix[0][0] * vector.x + matrix.matrix[1][0] * vector.y +
+                   matrix.matrix[2][0] * vector.z + matrix.matrix[3][0];
+    quaternion.y = matrix.matrix[0][1] * vector.x + matrix.matrix[1][1] * vector.y +
+                   matrix.matrix[2][1] * vector.z + matrix.matrix[3][1];
+    quaternion.z = matrix.matrix[0][2] * vector.x + matrix.matrix[1][2] * vector.y +
+                   matrix.matrix[2][2] * vector.z + matrix.matrix[3][2];
+
+    divisor = matrix.matrix[0][3] * vector.x + matrix.matrix[1][3] * vector.y +
+              matrix.matrix[2][3] * vector.z + matrix.matrix[3][3];
+
+    if (abs(divisor) < 0.0001)
+    {
+        divisor = 0.0001;
+        DEBUG_MSG_FROM("Failed: Can't divide by 0. CameraPosition and Vertex are equal!",
+                       "transformVector3ByMatrix");
+    }
+
+    quaternion.w = 1.0 / divisor;
+
+    result = createVector3(quaternion.x * quaternion.w, quaternion.y * quaternion.w, quaternion.z * quaternion.w);
 
     return result;
 }
 
-Matrix4x4 lookAt(Vector3 cameraPosition, Vector3 cameraTarget, Vector3 cameraUp)
+Quaternion createQuaternion(double x, double y, double z, double w)
+{
+    Quaternion q;
+
+    q.x = x;
+    q.y = y;
+    q.z = z;
+    q.w = w;
+
+    return q;
+}
+
+Quaternion vectorToQuaternion(Vector3 vector, double scalar)
+{
+    Quaternion q;
+
+    q.x = vector.x;
+    q.y = vector.y;
+    q.z = vector.z;
+    q.w = scalar;
+
+    return q;
+}
+
+Matrix4x4 createLookAtMatrix(Vector3 cameraPosition, Vector3 cameraTarget, Vector3 cameraUp)
 {
     Matrix4x4 result;
 
@@ -173,7 +211,7 @@ Matrix4x4 lookAt(Vector3 cameraPosition, Vector3 cameraTarget, Vector3 cameraUp)
     return result;
 }
 
-Matrix4x4 rotationXYZ(double x, double y, double z)
+Matrix4x4 createRotationXYZMatrix(double x, double y, double z)
 {
     Matrix4x4 result;
 
@@ -215,9 +253,9 @@ Matrix4x4 rotationXYZ(double x, double y, double z)
     return result;
 }
 
-Matrix4x4 perspectiveFov(double fov, double aspectRatio, double near, double far)
+Matrix4x4 createPerspectiveMatrix(double fov, double aspectRatio, double near, double far)
 {
-    double yScale = 1.0 / (double)tan(fov * 0.5);
+    double yScale = 1.0 / tan(fov * 0.5);
     double xScale = yScale / aspectRatio;
 
     Matrix4x4 result;
@@ -226,28 +264,28 @@ Matrix4x4 perspectiveFov(double fov, double aspectRatio, double near, double far
     {
         char temp[32];
         sprintf(temp, "Failed: Invalid fov: %f.", fov);
-        DEBUG_MSG_FROM(temp, "perspectiveFov");
+        DEBUG_MSG_FROM(temp, "createPerspectiveMatrix");
         return emptyMatrix;
     }
     if (near <= 0.0)
     {
         char temp[32];
         sprintf(temp, "Failed: Invalid near: %f.", near);
-        DEBUG_MSG_FROM(temp, "perspectiveFov");
+        DEBUG_MSG_FROM(temp, "createPerspectiveMatrix");
         return emptyMatrix;
     }
     if (far <= 0.0)
     {
         char temp[32];
         sprintf(temp, "Failed: Invalid far: %f.", far);
-        DEBUG_MSG_FROM(temp, "perspectiveFov");
+        DEBUG_MSG_FROM(temp, "createPerspectiveMatrix");
         return emptyMatrix;
     }
     if (near >= far)
     {
         char temp[32];
         sprintf(temp, "Failed: Invalid near: %f.", near);
-        DEBUG_MSG_FROM(temp, "perspectiveFov");
+        DEBUG_MSG_FROM(temp, "createPerspectiveMatrix");
         return emptyMatrix;
     }
 
@@ -267,7 +305,7 @@ Matrix4x4 perspectiveFov(double fov, double aspectRatio, double near, double far
     return result;
 }
 
-Matrix4x4 translation(double x, double y, double z)
+Matrix4x4 createTranslationMatrix(double x, double y, double z)
 {
     Matrix4x4 result;
 
@@ -294,35 +332,7 @@ Matrix4x4 translation(double x, double y, double z)
     return result;
 }
 
-Vector3 transformVector3ByMatrix4x4(Vector3 vector, Matrix4x4 matrix)
-{
-    double divisor;
-    Quaternion quaternion;
-    Vector3 result;
-
-    quaternion.x = matrix.matrix[0][0] * vector.x + matrix.matrix[1][0] * vector.y +
-                   matrix.matrix[2][0] * vector.z + matrix.matrix[3][0];
-    quaternion.y = matrix.matrix[0][1] * vector.x + matrix.matrix[1][1] * vector.y +
-                   matrix.matrix[2][1] * vector.z + matrix.matrix[3][1];
-    quaternion.z = matrix.matrix[0][2] * vector.x + matrix.matrix[1][2] * vector.y +
-                   matrix.matrix[2][2] * vector.z + matrix.matrix[3][2];
-
-    divisor = matrix.matrix[0][3] * vector.x + matrix.matrix[1][3] * vector.y +
-              matrix.matrix[2][3] * vector.z + matrix.matrix[3][3];
-
-    if (abs(divisor) < 0.0001)
-    {
-        divisor = 0.0001;
-        DEBUG_MSG_FROM("Failed: Can't divide by 0. CameraPosition and CameraTarget are equal!", "transformVector3ByMatrix4x4");
-    }
-
-    quaternion.w = 1.0 / (double)divisor;
-    result = createVector3(quaternion.x * quaternion.w, quaternion.y * quaternion.w, quaternion.z * quaternion.w);
-
-    return result;
-}
-
-Matrix4x4 multiplyMatrix4x4ByMatrix4x4(Matrix4x4 a, Matrix4x4 b)
+Matrix4x4 multiplyMatrices(Matrix4x4 a, Matrix4x4 b)
 {
     Matrix4x4 result;
 
