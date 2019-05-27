@@ -28,10 +28,9 @@ typedef struct ScreenStruct
 {
     short width;
     short height;
-    unsigned char* buffer;
 }Screen;
 
-Screen *screen;
+Screen screen;
 
 const Matrix4x4 emptyMatrix;
 
@@ -122,12 +121,12 @@ Vector3 normalizeVector3(Vector3 vector)
     return scaleVector3(vector, 1.0 / magnitude);
 }
 
-Point2D createPoint2D(double px, double py)
+Point2D createPoint2D(double x, double y)
 {
     Point2D p;
 
-    p.x = px;
-    p.y = py;
+    p.x = x;
+    p.y = y;
 
     return p;
 }
@@ -313,29 +312,29 @@ Vector3 transformVector3ByMatrix4x4(Vector3 vector, Matrix4x4 matrix)
     return result;
 }
 
-Matrix4x4 multiplyMatrix4x4ByMatrix4x4(Matrix4x4 ma, Matrix4x4 mb)
+Matrix4x4 multiplyMatrix4x4ByMatrix4x4(Matrix4x4 a, Matrix4x4 b)
 {
     Matrix4x4 result;
 
-    result.matrix[0][0] = ma.matrix[0][0] * mb.matrix[0][0] + ma.matrix[0][1] * mb.matrix[1][0] + ma.matrix[0][2] * mb.matrix[2][0] + ma.matrix[0][3] * mb.matrix[3][0];
-    result.matrix[0][1] = ma.matrix[0][0] * mb.matrix[0][1] + ma.matrix[0][1] * mb.matrix[1][1] + ma.matrix[0][2] * mb.matrix[2][1] + ma.matrix[0][3] * mb.matrix[3][1];
-    result.matrix[0][2] = ma.matrix[0][0] * mb.matrix[0][2] + ma.matrix[0][1] * mb.matrix[1][2] + ma.matrix[0][2] * mb.matrix[2][2] + ma.matrix[0][3] * mb.matrix[3][2];
-    result.matrix[0][3] = ma.matrix[0][0] * mb.matrix[0][3] + ma.matrix[0][1] * mb.matrix[1][3] + ma.matrix[0][2] * mb.matrix[2][3] + ma.matrix[0][3] * mb.matrix[3][3];
+    result.matrix[0][0] = a.matrix[0][0] * b.matrix[0][0] + a.matrix[0][1] * b.matrix[1][0] + a.matrix[0][2] * b.matrix[2][0] + a.matrix[0][3] * b.matrix[3][0];
+    result.matrix[0][1] = a.matrix[0][0] * b.matrix[0][1] + a.matrix[0][1] * b.matrix[1][1] + a.matrix[0][2] * b.matrix[2][1] + a.matrix[0][3] * b.matrix[3][1];
+    result.matrix[0][2] = a.matrix[0][0] * b.matrix[0][2] + a.matrix[0][1] * b.matrix[1][2] + a.matrix[0][2] * b.matrix[2][2] + a.matrix[0][3] * b.matrix[3][2];
+    result.matrix[0][3] = a.matrix[0][0] * b.matrix[0][3] + a.matrix[0][1] * b.matrix[1][3] + a.matrix[0][2] * b.matrix[2][3] + a.matrix[0][3] * b.matrix[3][3];
 
-    result.matrix[1][0] = ma.matrix[1][0] * mb.matrix[0][0] + ma.matrix[1][1] * mb.matrix[1][0] + ma.matrix[1][2] * mb.matrix[2][0] + ma.matrix[1][3] * mb.matrix[3][0];
-    result.matrix[1][1] = ma.matrix[1][0] * mb.matrix[0][1] + ma.matrix[1][1] * mb.matrix[1][1] + ma.matrix[1][2] * mb.matrix[2][1] + ma.matrix[1][3] * mb.matrix[3][1];
-    result.matrix[1][2] = ma.matrix[1][0] * mb.matrix[0][2] + ma.matrix[1][1] * mb.matrix[1][2] + ma.matrix[1][2] * mb.matrix[2][2] + ma.matrix[1][3] * mb.matrix[3][2];
-    result.matrix[1][3] = ma.matrix[1][0] * mb.matrix[0][3] + ma.matrix[1][1] * mb.matrix[1][3] + ma.matrix[1][2] * mb.matrix[2][3] + ma.matrix[1][3] * mb.matrix[3][3];
+    result.matrix[1][0] = a.matrix[1][0] * b.matrix[0][0] + a.matrix[1][1] * b.matrix[1][0] + a.matrix[1][2] * b.matrix[2][0] + a.matrix[1][3] * b.matrix[3][0];
+    result.matrix[1][1] = a.matrix[1][0] * b.matrix[0][1] + a.matrix[1][1] * b.matrix[1][1] + a.matrix[1][2] * b.matrix[2][1] + a.matrix[1][3] * b.matrix[3][1];
+    result.matrix[1][2] = a.matrix[1][0] * b.matrix[0][2] + a.matrix[1][1] * b.matrix[1][2] + a.matrix[1][2] * b.matrix[2][2] + a.matrix[1][3] * b.matrix[3][2];
+    result.matrix[1][3] = a.matrix[1][0] * b.matrix[0][3] + a.matrix[1][1] * b.matrix[1][3] + a.matrix[1][2] * b.matrix[2][3] + a.matrix[1][3] * b.matrix[3][3];
 
-    result.matrix[2][0] = ma.matrix[2][0] * mb.matrix[0][0] + ma.matrix[2][1] * mb.matrix[1][0] + ma.matrix[2][2] * mb.matrix[2][0] + ma.matrix[2][3] * mb.matrix[3][0];
-    result.matrix[2][1] = ma.matrix[2][0] * mb.matrix[0][1] + ma.matrix[2][1] * mb.matrix[1][1] + ma.matrix[2][2] * mb.matrix[2][1] + ma.matrix[2][3] * mb.matrix[3][1];
-    result.matrix[2][2] = ma.matrix[2][0] * mb.matrix[0][2] + ma.matrix[2][1] * mb.matrix[1][2] + ma.matrix[2][2] * mb.matrix[2][2] + ma.matrix[2][3] * mb.matrix[3][2];
-    result.matrix[2][3] = ma.matrix[2][0] * mb.matrix[0][3] + ma.matrix[2][1] * mb.matrix[1][3] + ma.matrix[2][2] * mb.matrix[2][3] + ma.matrix[2][3] * mb.matrix[3][3];
+    result.matrix[2][0] = a.matrix[2][0] * b.matrix[0][0] + a.matrix[2][1] * b.matrix[1][0] + a.matrix[2][2] * b.matrix[2][0] + a.matrix[2][3] * b.matrix[3][0];
+    result.matrix[2][1] = a.matrix[2][0] * b.matrix[0][1] + a.matrix[2][1] * b.matrix[1][1] + a.matrix[2][2] * b.matrix[2][1] + a.matrix[2][3] * b.matrix[3][1];
+    result.matrix[2][2] = a.matrix[2][0] * b.matrix[0][2] + a.matrix[2][1] * b.matrix[1][2] + a.matrix[2][2] * b.matrix[2][2] + a.matrix[2][3] * b.matrix[3][2];
+    result.matrix[2][3] = a.matrix[2][0] * b.matrix[0][3] + a.matrix[2][1] * b.matrix[1][3] + a.matrix[2][2] * b.matrix[2][3] + a.matrix[2][3] * b.matrix[3][3];
 
-    result.matrix[3][0] = ma.matrix[3][0] * mb.matrix[0][0] + ma.matrix[3][1] * mb.matrix[1][0] + ma.matrix[3][2] * mb.matrix[2][0] + ma.matrix[3][3] * mb.matrix[3][0];
-    result.matrix[3][1] = ma.matrix[3][0] * mb.matrix[0][1] + ma.matrix[3][1] * mb.matrix[1][1] + ma.matrix[3][2] * mb.matrix[2][1] + ma.matrix[3][3] * mb.matrix[3][1];
-    result.matrix[3][2] = ma.matrix[3][0] * mb.matrix[0][2] + ma.matrix[3][1] * mb.matrix[1][2] + ma.matrix[3][2] * mb.matrix[2][2] + ma.matrix[3][3] * mb.matrix[3][2];
-    result.matrix[3][3] = ma.matrix[3][0] * mb.matrix[0][3] + ma.matrix[3][1] * mb.matrix[1][3] + ma.matrix[3][2] * mb.matrix[2][3] + ma.matrix[3][3] * mb.matrix[3][3];
+    result.matrix[3][0] = a.matrix[3][0] * b.matrix[0][0] + a.matrix[3][1] * b.matrix[1][0] + a.matrix[3][2] * b.matrix[2][0] + a.matrix[3][3] * b.matrix[3][0];
+    result.matrix[3][1] = a.matrix[3][0] * b.matrix[0][1] + a.matrix[3][1] * b.matrix[1][1] + a.matrix[3][2] * b.matrix[2][1] + a.matrix[3][3] * b.matrix[3][1];
+    result.matrix[3][2] = a.matrix[3][0] * b.matrix[0][2] + a.matrix[3][1] * b.matrix[1][2] + a.matrix[3][2] * b.matrix[2][2] + a.matrix[3][3] * b.matrix[3][2];
+    result.matrix[3][3] = a.matrix[3][0] * b.matrix[0][3] + a.matrix[3][1] * b.matrix[1][3] + a.matrix[3][2] * b.matrix[2][3] + a.matrix[3][3] * b.matrix[3][3];
 
     return result;
 }

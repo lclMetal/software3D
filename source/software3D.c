@@ -62,98 +62,36 @@ Mesh *newMesh(char meshName[256], int vertexCount)
     return ptr;
 }
 
-int setMeshVertex(Mesh *targetMesh, int vertexNum, Vector3 vertex)
+int setMeshVertex(Mesh *mesh, int vertexNum, Vector3 vertex)
 {
-    if (!targetMesh) return -1;
-    if (vertexNum < 0 || vertexNum >= targetMesh->vertexCount) return -2;
+    if (!mesh) return -1;
+    if (vertexNum < 0 || vertexNum >= mesh->vertexCount) return -2;
 
-    targetMesh->vertices[vertexNum] = vertex;
+    mesh->vertices[vertexNum] = vertex;
 
     return 0;
 }
 
-void destroyMesh(Mesh *ptr)
+void destroyMesh(Mesh *mesh)
 {
-    if (!ptr) return;
+    if (!mesh) return;
 
-    free(ptr->vertices);
-    free(ptr);
+    free(mesh->vertices);
+    free(mesh);
 }
 
-Screen *newScreen(short scrWidth, short scrHeight)
+Screen createScreen(short width, short height)
 {
-    Screen *ptr = NULL;
+    Screen screen;
 
-    ptr = malloc(sizeof *ptr);
+    screen.width = width;
+    screen.height = height;
 
-    if (!ptr) return NULL;
-
-    ptr->width = scrWidth;
-    ptr->height = scrHeight;
-    ptr->buffer = malloc(sizeof *(ptr->buffer) * (ptr->width * ptr->height * 3));
-
-    if (!ptr->buffer)
-    {
-        free(ptr);
-        return NULL;
-    }
-
-    return ptr;
-}
-
-void destroyScreen(Screen *ptr)
-{
-    if (!ptr) return;
-
-    free(ptr->buffer);
-    free(ptr);
-}
-
-void eraseScreen(Screen *ptr, unsigned char r, unsigned char g, unsigned char b)
-{
-    int i, j, k;
-
-    if (!ptr) return;
-
-    for (i = 0; i < ptr->height; i ++)
-    {
-        for (j = 0; j < ptr->width; j ++)
-        {
-            ptr->buffer[i * ptr->width * 3 + j * 3] = r;
-            ptr->buffer[i * ptr->width * 3 + j * 3 + 1] = g;
-            ptr->buffer[i * ptr->width * 3 + j * 3 + 2] = b;
-        }
-    }
-}
-
-void renderScreen(Screen *ptr)
-{
-    int i, j, k;
-
-    if (!ptr) return;
-
-    for (i = 0; i < ptr->height; i ++)
-    {
-        for (j = 0; j < ptr->width; j ++)
-        {
-            if (ptr->buffer[i * ptr->width * 3 + j * 3] > 0)
-            {
-            setpen(ptr->buffer[i * ptr->width * 3 + j * 3],
-            ptr->buffer[i * ptr->width * 3 + j * 3 + 1],
-            ptr->buffer[i * ptr->width * 3 + j * 3 + 2], 0, 1);
-            putpixel(j, i);
-            }
-        }
-    }
+    return screen;
 }
 
 void putPixelOnScreen(Screen *ptr, short x, short y, unsigned char r, unsigned char g, unsigned char b)
 {
-    if (!ptr) return;
-
-    ptr->buffer[y * ptr->width * 3 + x * 3] = r;
-    ptr->buffer[y * ptr->width * 3 + x * 3 + 1] = g;
-    ptr->buffer[y * ptr->width * 3 + x * 3 + 2] = b;
     setpen(r, g, b, 0, 4);
     putpixel(x, y);
 }
