@@ -9,11 +9,20 @@ typedef struct CameraStruct
     Vector3 target;
 }Camera;
 
+typedef struct FaceStruct
+{
+    short a;
+    short b;
+    short c;
+}Face;
+
 typedef struct MeshStruct
 {
     char name[256];
     int vertexCount;
     Vector3* vertices;
+    int faceCount;
+    Face* faces;
     Vector3 position;
     Vector3 rotation;
     Matrix4x4 orientation;
@@ -42,9 +51,11 @@ Screen screen;
 short mode = 0;
 
 Screen createScreen(short width, short height);
+Face createFace(short a, short b, short c);
 void drawPointOnScreen(Screen *ptr, Point2D point);
-Mesh *newMesh(char meshName[256], int vertexCount);
+Mesh *newMesh(char meshName[256], int vertexCount, int faceCount);
 int setMeshVertex(Mesh *mesh, int vertexNum, Vector3 vertex);
+int setMeshFace(Mesh *mesh, int faceNum, Face face);
 void setMeshOrientation(Mesh *mesh, Vector3 orientation);
 void renderMesh(Screen *screen, Camera *camera, Mesh *mesh);
 void destroyMesh(Mesh *mesh);
@@ -57,6 +68,17 @@ Screen createScreen(short width, short height)
     screen.height = height;
 
     return screen;
+}
+
+Face createFace(short a, short b, short c)
+{
+    Face face;
+
+    face.a = a;
+    face.b = b;
+    face.c = c;
+
+    return face;
 }
 
 void drawPointOnScreen(Screen *screen, Point2D point)
@@ -74,7 +96,7 @@ void drawPointOnScreen(Screen *screen, Point2D point)
     }
 }
 
-Mesh *newMesh(char meshName[256], int vertexCount)
+Mesh *newMesh(char meshName[256], int vertexCount, int faceCount)
 {
     Mesh *ptr = NULL;
 
@@ -87,6 +109,16 @@ Mesh *newMesh(char meshName[256], int vertexCount)
 
     if (!ptr->vertices)
     {
+        free(ptr);
+        return NULL;
+    }
+
+    ptr->faceCount = faceCount;
+    ptr->faces = malloc(sizeof *(ptr->faces) * ptr->faceCount);
+
+    if (!ptr->faces)
+    {
+        free(ptr->vertices);
         free(ptr);
         return NULL;
     }
@@ -110,6 +142,16 @@ int setMeshVertex(Mesh *mesh, int vertexNum, Vector3 vertex)
     return 0;
 }
 
+int setMeshFace(Mesh *mesh, int faceNum, Face face)
+{
+    if (!mesh) return -1;
+    if (faceNum < 0 || faceNum >= mesh->faceCount) return -2;
+
+    mesh->faces[faceNum] = face;
+
+    return 0;
+}
+
 void setMeshOrientation(Mesh *mesh, Vector3 orientation)
 {
     mesh->orientation = createRotationXYZMatrix(orientation.x, orientation.y, orientation.z);
@@ -119,6 +161,8 @@ void renderMesh(Screen *screen, Camera *camera, Mesh *mesh)
 {
     int i;
     Point2D point;
+    Vector3 vertexA, vertexB, vertexC;
+    Point2D pointA, pointB, pointC;
     Matrix4x4 viewMatrix = createLookAtMatrix(camera->position, camera->target, createVector3(0, 1, 0));
     Matrix4x4 projectionMatrix =
         createPerspectiveMatrix(PI/3.0, screen->width / (double)screen->height, 0.01, 1000.0);
@@ -139,7 +183,29 @@ void renderMesh(Screen *screen, Camera *camera, Mesh *mesh)
     tempMatrix = multiplyMatrices(worldMatrix, viewMatrix);
     transformMatrix = multiplyMatrices(tempMatrix, projectionMatrix);
 
-    for (i = 0; i < mesh->vertexCount; i ++)
+    for (i = 0; i < mesh->faceCount; i ++)
+    {
+        vertexA = mesh->vertices[mesh->faces[i].a];
+        vertexB = mesh->vertices[mesh->faces[i].b];
+        vertexC = mesh->vertices[mesh->faces[i].c];
+
+        pointA = project(screen->width, screen->height, vertexA, transformMatrix);
+        pointB = project(screen->width, screen->height, vertexB, transformMatrix);
+        pointC = project(screen->width, screen->height, vertexC, transformMatrix);
+
+        setpen(255, 0, 255, 0, 7);
+        drawPointOnScreen(screen, pointA);
+        drawPointOnScreen(screen, pointB);
+        drawPointOnScreen(screen, pointC);
+
+        setpen(255, 255, 255, 0, 1);
+        moveto(pointA.x, pointA.y);
+        lineto(pointB.x, pointB.y);
+        lineto(pointC.x, pointC.y);
+        lineto(pointA.x, pointA.y);
+    }
+
+    /*for (i = 0; i < mesh->vertexCount; i ++)
     {
         switch (mode)
         {
@@ -171,7 +237,7 @@ void renderMesh(Screen *screen, Camera *camera, Mesh *mesh)
                 moveto(point.x, point.y);
                 break;
         }
-    }
+    }*/
 }
 
 void destroyMesh(Mesh *mesh)
@@ -179,5 +245,6 @@ void destroyMesh(Mesh *mesh)
     if (!mesh) return;
 
     free(mesh->vertices);
+    free(mesh->faces);
     free(mesh);
 }
