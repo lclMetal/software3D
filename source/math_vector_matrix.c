@@ -225,28 +225,28 @@ Matrix4x4 perspectiveFov(double fov, double aspectRatio, double near, double far
     if (fov <= 0.0 || fov >= PI)
     {
         char temp[32];
-        sprintf(temp, "invalid fov: %f", fov);
+        sprintf(temp, "Failed: Invalid fov: %f.", fov);
         DEBUG_MSG_FROM(temp, "perspectiveFov");
         return emptyMatrix;
     }
     if (near <= 0.0)
     {
         char temp[32];
-        sprintf(temp, "invalid near: %f", near);
+        sprintf(temp, "Failed: Invalid near: %f.", near);
         DEBUG_MSG_FROM(temp, "perspectiveFov");
         return emptyMatrix;
     }
     if (far <= 0.0)
     {
         char temp[32];
-        sprintf(temp, "invalid far: %f", far);
+        sprintf(temp, "Failed: Invalid far: %f.", far);
         DEBUG_MSG_FROM(temp, "perspectiveFov");
         return emptyMatrix;
     }
     if (near >= far)
     {
         char temp[32];
-        sprintf(temp, "invalid near: %f", near);
+        sprintf(temp, "Failed: Invalid near: %f.", near);
         DEBUG_MSG_FROM(temp, "perspectiveFov");
         return emptyMatrix;
     }
@@ -296,6 +296,7 @@ Matrix4x4 translation(double x, double y, double z)
 
 Vector3 transformVector3ByMatrix4x4(Vector3 vector, Matrix4x4 matrix)
 {
+    double divisor;
     Quaternion quaternion;
     Vector3 result;
 
@@ -305,8 +306,17 @@ Vector3 transformVector3ByMatrix4x4(Vector3 vector, Matrix4x4 matrix)
                    matrix.matrix[2][1] * vector.z + matrix.matrix[3][1];
     quaternion.z = matrix.matrix[0][2] * vector.x + matrix.matrix[1][2] * vector.y +
                    matrix.matrix[2][2] * vector.z + matrix.matrix[3][2];
-    quaternion.w = 1.0 / (matrix.matrix[0][3] * vector.x + matrix.matrix[1][3] * vector.y +
-                          matrix.matrix[2][3] * vector.z + matrix.matrix[3][3]);
+
+    divisor = matrix.matrix[0][3] * vector.x + matrix.matrix[1][3] * vector.y +
+              matrix.matrix[2][3] * vector.z + matrix.matrix[3][3];
+
+    if (abs(divisor) < 0.0001)
+    {
+        divisor = 0.0001;
+        DEBUG_MSG_FROM("Failed: Can't divide by 0. CameraPosition and CameraTarget are equal!", "transformVector3ByMatrix4x4");
+    }
+
+    quaternion.w = 1.0 / (double)divisor;
     result = createVector3(quaternion.x * quaternion.w, quaternion.y * quaternion.w, quaternion.z * quaternion.w);
 
     return result;

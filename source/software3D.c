@@ -90,19 +90,17 @@ Screen createScreen(short width, short height)
     return screen;
 }
 
-void putPixelOnScreen(Screen *ptr, short x, short y, unsigned char r, unsigned char g, unsigned char b)
-{
-    setpen(r, g, b, 0, 4);
-    putpixel(x, y);
-}
-
 void drawPointOnScreen(Screen *ptr, Point2D point)
 {
-    if (!ptr) return;
+    if (!ptr)
+    {
+        DEBUG_MSG_FROM("Failed: Screen pointer was NULL.", "drawPointOnScreen");
+        return;
+    }
 
     if (point.x >= 0 && point.y >= 0 && point.x < ptr->width && point.y < ptr->height)
     {
-        putPixelOnScreen(ptr, (short)point.x, (short)point.y, 255, 255, 255);
+        putpixel(point.x, point.y);
     }
 }
 
@@ -114,6 +112,7 @@ void setMeshOrientation(Mesh *mesh, Vector3 orientation)
 void renderMesh(Screen *screen, Camera *camera, Mesh *mesh)
 {
     int i;
+    Point2D point;
     Matrix4x4 viewMatrix = lookAt(camera->position, camera->target, createVector3(0, 1, 0));
     Matrix4x4 projectionMatrix =
         perspectiveFov(PI/3.0, (double)screen->width / (double)screen->height, 0.01, 1000.0);
@@ -136,18 +135,17 @@ void renderMesh(Screen *screen, Camera *camera, Mesh *mesh)
 
     for (i = 0; i < mesh->vertexCount; i ++)
     {
-        char temp[128];
-        Point2D point;
-
         switch (mode)
         {
             case 0:
                 point = project(screen, mesh->vertices[i], transformMatrix);
+                setpen(255, 255, 255, 0, 4);
                 drawPointOnScreen(screen, point);
                 break;
 
             case 1:
                 point = project(screen, mesh->vertices[i], transformMatrix);
+                setpen(255, 255, 255, 0, 4);
                 drawPointOnScreen(screen, point);
                 setpen(255, 255, 255, 0, 1);
                 moveto(point.x, point.y);
@@ -157,6 +155,7 @@ void renderMesh(Screen *screen, Camera *camera, Mesh *mesh)
 
             case 2:
                 point = project(screen, mesh->vertices[i], transformMatrix);
+                setpen(255, 255, 255, 0, 4);
                 drawPointOnScreen(screen, point);
                 setpen(255, 255, 255, 0, 1);
 
@@ -166,8 +165,5 @@ void renderMesh(Screen *screen, Camera *camera, Mesh *mesh)
                 moveto(point.x, point.y);
                 break;
         }
-
-        sprintf(temp, "vertex: %i x: %f, y: %f", i, point.x, point.y);
-        DEBUG_MSG(temp);
     }
 }
