@@ -261,7 +261,7 @@ Mesh *readMeshFromFile(char fileName[256])
     if (!f)
         return NULL;
 
-    mesh = newMesh(fileName, mf.vertexCount + 1, mf.faceCount + 1 , mf.normalCount + 1);
+    mesh = newMesh(fileName, mf.vertexCount, mf.faceCount , mf.normalCount);
 
     if (!mesh)
         return NULL;
