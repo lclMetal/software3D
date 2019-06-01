@@ -122,7 +122,7 @@ void drawPointOnScreen(Screen *screen, Point2D point)
         return;
     }
 
-    if (point.x >= 0 && point.y >= 0 &&
+    if (point.x >= 0.0f && point.y >= 0.0f &&
         point.x < screen->width && point.y < screen->height)
     {
         putpixel(point.x, point.y);
@@ -167,9 +167,9 @@ Mesh *newMesh(char meshName[256], int vertexCount, int faceCount, int normalCoun
         return NULL;
     }
 
-    ptr->position = createVector3(0.0, 0.0, 0.0);
-    ptr->rotation = createVector3(0.0, 0.0, 0.0);
-    ptr->orientation = createTranslationMatrix(0.0, 0.0, 0.0);
+    ptr->position = createVector3(0.0f, 0.0f, 0.0f);
+    ptr->rotation = createVector3(0.0f, 0.0f, 0.0f);
+    ptr->orientation = createTranslationMatrix(0.0f, 0.0f, 0.0f);
 
     strcpy(ptr->name, meshName);
 
@@ -268,7 +268,7 @@ Mesh *readMeshFromFile(char fileName[256])
 
     if (f)
     {
-        Vector3 vec = createVector3(0.0, 0.0, 0.0);
+        Vector3 vec = createVector3(0.0f, 0.0f, 0.0f);
         Face face;
         int vertexNum = 0, faceNum = 0, normalNum = 0;
 
@@ -288,14 +288,14 @@ Mesh *readMeshFromFile(char fileName[256])
                     {
                         // only 'v' --> this is a vertex
                         case ' ':
-                            fscanf(f, "%lf %lf %lf",
+                            fscanf(f, "%f %f %f",
                                     &vec.x, &vec.y, &vec.z);
                             setMeshVertex(mesh, vertexNum++, vec);
                             break;
 
                         // 'vn' --> this is a normal
                         case 'n':
-                            fscanf(f, " %lf %lf %lf",
+                            fscanf(f, " %f %f %f",
                                     &vec.x, &vec.y, &vec.z);
                             setMeshNormal(mesh, normalNum++, vec);
                             break;
@@ -374,16 +374,16 @@ void renderMesh(Screen *screen, Camera *camera, Mesh *mesh)
     Point2D pointA, pointB, pointC;
     Matrix4x4 viewMatrix = createLookAtMatrix(camera->position, camera->target, createVector3(0, 1, 0));
     Matrix4x4 projectionMatrix =
-        createPerspectiveMatrix(PI/3.0, screen->width / (double)screen->height, 0.01, 1000.0);
+        createPerspectiveMatrix(PI/3.0f, screen->width / (float)screen->height, 0.01f, 1000.0f);
 
     Matrix4x4 worldMatrix, tempMatrix, transformMatrix;
 
     // perform rotation one by one for each axis
     // https://gamedev.stackexchange.com/questions/67199/how-to-rotate-an-object-around-world-aligned-axes/67269#67269
-    mesh->orientation = multiplyMatrices(mesh->orientation, createRotationXYZMatrix(mesh->rotation.x, 0.0, 0.0));
-    mesh->orientation = multiplyMatrices(mesh->orientation, createRotationXYZMatrix(0.0, mesh->rotation.y, 0.0));
-    mesh->orientation = multiplyMatrices(mesh->orientation, createRotationXYZMatrix(0.0, 0.0, mesh->rotation.z));
-    mesh->rotation = createVector3(0.0, 0.0, 0.0);
+    mesh->orientation = multiplyMatrices(mesh->orientation, createRotationXYZMatrix(mesh->rotation.x, 0.0f, 0.0f));
+    mesh->orientation = multiplyMatrices(mesh->orientation, createRotationXYZMatrix(0.0f, mesh->rotation.y, 0.0f));
+    mesh->orientation = multiplyMatrices(mesh->orientation, createRotationXYZMatrix(0.0f, 0.0f, mesh->rotation.z));
+    mesh->rotation = createVector3(0.0f, 0.0f, 0.0f);
 
     worldMatrix =
         multiplyMatrices(mesh->orientation,
