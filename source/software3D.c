@@ -11,9 +11,7 @@ typedef struct CameraStruct
 
 typedef struct FaceStruct
 {
-    short a;
-    short b;
-    short c;
+    short indices[3];
     short normal;
 }Face;
 
@@ -23,6 +21,7 @@ typedef struct MeshStruct
 
     int vertexCount;
     Vector3* vertices;
+    Point2D* vertexProjections;
 
     int faceCount;
     Face* faces;
@@ -66,8 +65,8 @@ Screen screen;
 short mode = 0;
 
 Screen createScreen(short width, short height);
-Face createFace(short a, short b, short c);
-Face createFaceWithNormal(short a, short b, short c, short normal);
+Face createFace(short v1, short v2, short v3);
+Face createFaceWithNormal(short v1, short v2, short v3, short normal);
 void drawPointOnScreen(Screen *ptr, Point2D point);
 Mesh *newMesh(char meshName[256], int vertexCount, int faceCount, int normalCount);
 void fseekEndOfLine(FILE *f);
@@ -90,25 +89,31 @@ Screen createScreen(short width, short height)
     return screen;
 }
 
-Face createFace(short a, short b, short c)
+Face createFace(short v1, short v2, short v3)
 {
     Face face;
 
-    face.a = a;
+    face.indices[0] = v1;
+    face.indices[1] = v2;
+    face.indices[2] = v3;
+    /*face.a = a;
     face.b = b;
-    face.c = c;
+    face.c = c;*/
     face.normal = 0;
 
     return face;
 }
 
-Face createFaceWithNormal(short a, short b, short c, short normal)
+Face createFaceWithNormal(short v1, short v2, short v3, short normal)
 {
     Face face;
 
-    face.a = a;
+    face.indices[0] = v1;
+    face.indices[1] = v2;
+    face.indices[2] = v3;
+    /*face.a = a;
     face.b = b;
-    face.c = c;
+    face.c = c;*/
     face.normal = normal;
 
     return face;
@@ -146,12 +151,22 @@ Mesh *newMesh(char meshName[256], int vertexCount, int faceCount, int normalCoun
         return NULL;
     }
 
+    ptr->vertexProjections = malloc(sizeof *(ptr->vertexProjections) * ptr->vertexCount);
+
+    if (!ptr->vertexProjections)
+    {
+        free(ptr->vertices);
+        free(ptr);
+        return NULL;
+    }
+
     ptr->faceCount = faceCount;
     ptr->faces = malloc(sizeof *(ptr->faces) * ptr->faceCount);
 
     if (!ptr->faces)
     {
         free(ptr->vertices);
+        free(ptr->vertexProjections);
         free(ptr);
         return NULL;
     }
@@ -162,6 +177,7 @@ Mesh *newMesh(char meshName[256], int vertexCount, int faceCount, int normalCoun
     if (!ptr->normals)
     {
         free(ptr->vertices);
+        free(ptr->vertexProjections);
         free(ptr->faces);
         free(ptr);
         return NULL;
@@ -308,10 +324,13 @@ Mesh *readMeshFromFile(char fileName[256])
                 // 'f' --> this is a face
                 case 'f':
                     fscanf(f, "%hd//%hd %hd//%hd %hd//%hd",
-                            &face.a, &face.normal,
-                            &face.b, &face.normal,
-                            &face.c, &face.normal);
-                    setMeshFace(mesh, faceNum++, createFaceWithNormal(face.a - 1, face.b - 1, face.c - 1, face.normal - 1));
+                            &face.indices[0], &face.normal,
+                            &face.indices[1], &face.normal,
+                            &face.indices[2], &face.normal);
+                    setMeshFace(mesh, faceNum++,
+                        createFaceWithNormal(face.indices[0] - 1,
+                                             face.indices[1] - 1,
+                                             face.indices[2] - 1, face.normal - 1));
                     break;
 
                 // end-of-line, nothing to see here
@@ -368,10 +387,10 @@ void setMeshOrientation(Mesh *mesh, Vector3 orientation)
 
 void renderMesh(Screen *screen, Camera *camera, Mesh *mesh)
 {
-    int i;
+    int i, j, cycles = 0;
     Point2D point;
     Vector3 vertexA, vertexB, vertexC;
-    Point2D pointA, pointB, pointC;
+    Point2D vertices[3]; //pointA, pointB, pointC;
     Matrix4x4 viewMatrix = createLookAtMatrix(camera->position, camera->target, createVector3(0, 1, 0));
     Matrix4x4 projectionMatrix =
         createPerspectiveMatrix(PI/3.0f, screen->width / (float)screen->height, 0.01f, 1000.0f);
@@ -392,67 +411,94 @@ void renderMesh(Screen *screen, Camera *camera, Mesh *mesh)
     tempMatrix = multiplyMatrices(worldMatrix, viewMatrix);
     transformMatrix = multiplyMatrices(tempMatrix, projectionMatrix);
 
+    // reset the array of projections
+    for (i = 0; i < mesh->vertexCount; i++)
+    {
+        mesh->vertexProjections[i].x = mesh->vertexProjections[i].y = 0.0f;
+    }
+
     for (i = 0; i < mesh->faceCount; i ++)
     {
-        vertexA = mesh->vertices[mesh->faces[i].a];
-        vertexB = mesh->vertices[mesh->faces[i].b];
-        vertexC = mesh->vertices[mesh->faces[i].c];
+        for (j = 0; j < 3; j ++)
+        {
+            if (mesh->vertexProjections[mesh->faces[i].indices[j]].x <= 0)
+            {
+                vertices[j] = project(screen->width, screen->height, mesh->vertices[mesh->faces[i].indices[j]], transformMatrix);
+                mesh->vertexProjections[mesh->faces[i].indices[j]] = vertices[j];
+                cycles++;
+            }
+            else
+                vertices[j] = mesh->vertexProjections[mesh->faces[i].indices[j]];
+        }
 
-        pointA = project(screen->width, screen->height, vertexA, transformMatrix);
+
+
+        /*if (mesh->vertexProjections[mesh->faces[i].a].x <= 0)
+        {
+            pointA = project(screen->width, screen->height, mesh->vertices[mesh->faces[i].a], transformMatrix);
+            mesh->vertexProjections[mesh->faces[i].a] = pointA;
+            cycles++;
+        }
+        else
+            pointA = mesh->vertexProjections[mesh->faces[i].a];
+
+        if (mesh->vertexProjections[mesh->faces[i].b].x <= 0)
+        {
+            pointB = project(screen->width, screen->height, mesh->vertices[mesh->faces[i].b], transformMatrix);
+            mesh->vertexProjections[mesh->faces[i].b] = pointB;
+            cycles++;
+        }
+        else
+            pointB = mesh->vertexProjections[mesh->faces[i].b];
+
+        if (mesh->vertexProjections[mesh->faces[i].c].x <= 0)
+        {
+            pointC = project(screen->width, screen->height, mesh->vertices[mesh->faces[i].c], transformMatrix);
+            mesh->vertexProjections[mesh->faces[i].c] = pointC;
+            cycles++;
+        }
+        else
+            pointC = mesh->vertexProjections[mesh->faces[i].c];*/
+
+
+
+
+
+        /*vertexA = mesh->vertices[mesh->faces[i].a];
+        vertexB = mesh->vertices[mesh->faces[i].b];
+        vertexC = mesh->vertices[mesh->faces[i].c];*/
+
+        // pointA.x = vertexA.x; pointA.y = vertexA.y;
+        // pointB.x = vertexB.x; pointB.y = vertexB.y;
+        // pointC.x = vertexC.x; pointC.y = vertexC.y;
+
+
+        // pre-optimized version called project 2904 times
+        // for the suzanne.obj model that has    507 vertices
+        // one call of project amounts to         20 multiplications/divisions,
+        // which means that every frame        58080 multiplications/divisions took place
+        // instead of the minimum required     10140
+        /*pointA = project(screen->width, screen->height, vertexA, transformMatrix);
         pointB = project(screen->width, screen->height, vertexB, transformMatrix);
-        pointC = project(screen->width, screen->height, vertexC, transformMatrix);
+        pointC = project(screen->width, screen->height, vertexC, transformMatrix);*/
 
         if (mode)
         {
             setpen(255, 255, 255, 0, 1);
-            moveto(pointA.x, pointA.y);
-            lineto(pointB.x, pointB.y);
-            lineto(pointC.x, pointC.y);
-            lineto(pointA.x, pointA.y);
+            moveto(vertices[0].x, vertices[0].y); //pointA.x, pointA.y);
+            lineto(vertices[1].x, vertices[1].y); //pointB.x, pointB.y);
+            lineto(vertices[2].x, vertices[2].y); //pointC.x, pointC.y);
+            lineto(vertices[0].x, vertices[0].y); //pointA.x, pointA.y);
         }
 
         if (mode <= 1)
         {
             setpen(255, 0, 255, 0, 7);
-            drawPointOnScreen(screen, pointA);
-            drawPointOnScreen(screen, pointB);
-            drawPointOnScreen(screen, pointC);
+            drawPointOnScreen(screen, vertices[0]); //pointA);
+            drawPointOnScreen(screen, vertices[1]); //pointB);
+            drawPointOnScreen(screen, vertices[2]); //pointC);
         }
     }
-
-    /*for (i = 0; i < mesh->vertexCount; i ++)
-    {
-        switch (mode)
-        {
-            case 0:
-                point = project(screen->width, screen->height, mesh->vertices[i], transformMatrix);
-                setpen(255, 255, 255, 0, 4);
-                drawPointOnScreen(screen, point);
-                break;
-
-            case 1:
-                point = project(screen->width, screen->height, mesh->vertices[i], transformMatrix);
-                setpen(255, 255, 255, 0, 4);
-                drawPointOnScreen(screen, point);
-                setpen(255, 255, 255, 0, 1);
-                moveto(point.x, point.y);
-                point = project(screen->width, screen->height, coords->vertices[0], transformMatrix);
-                lineto(point.x, point.y);
-                break;
-
-            case 2:
-                point = project(screen->width, screen->height, mesh->vertices[i], transformMatrix);
-                setpen(255, 255, 255, 0, 4);
-                drawPointOnScreen(screen, point);
-                setpen(255, 255, 255, 0, 1);
-
-                if (i > 0)
-                    lineto(point.x, point.y);
-
-                moveto(point.x, point.y);
-                break;
-        }
-    }*/
 }
 
 void destroyMesh(Mesh *mesh)
@@ -460,6 +506,7 @@ void destroyMesh(Mesh *mesh)
     if (!mesh) return;
 
     free(mesh->vertices);
+    free(mesh->vertexProjections);
     free(mesh->faces);
     free(mesh);
 }
