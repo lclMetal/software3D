@@ -96,9 +96,6 @@ Face createFace(short v1, short v2, short v3)
     face.indices[0] = v1;
     face.indices[1] = v2;
     face.indices[2] = v3;
-    /*face.a = a;
-    face.b = b;
-    face.c = c;*/
     face.normal = 0;
 
     return face;
@@ -111,9 +108,6 @@ Face createFaceWithNormal(short v1, short v2, short v3, short normal)
     face.indices[0] = v1;
     face.indices[1] = v2;
     face.indices[2] = v3;
-    /*face.a = a;
-    face.b = b;
-    face.c = c;*/
     face.normal = normal;
 
     return face;
@@ -387,10 +381,8 @@ void setMeshOrientation(Mesh *mesh, Vector3 orientation)
 
 void renderMesh(Screen *screen, Camera *camera, Mesh *mesh)
 {
-    int i, j, cycles = 0;
-    Point2D point;
-    Vector3 vertexA, vertexB, vertexC;
-    Point2D vertices[3]; //pointA, pointB, pointC;
+    int i, j;
+    Point2D vertices[3];
     Matrix4x4 viewMatrix = createLookAtMatrix(camera->position, camera->target, createVector3(0, 1, 0));
     Matrix4x4 projectionMatrix =
         createPerspectiveMatrix(PI/3.0f, screen->width / (float)screen->height, 0.01f, 1000.0f);
@@ -419,84 +411,44 @@ void renderMesh(Screen *screen, Camera *camera, Mesh *mesh)
 
     for (i = 0; i < mesh->faceCount; i ++)
     {
+        // pre-optimized version called project() once for every vertex
+        // of every face, amounting to total    2904 times
+        // for the suzanne.obj model that has    507 vertices
+
+        // optimized version calls project() only once for each vertex
+        // of the mesh, amounting to total       507 times, logically
+
+        // one call of project() amounts to       20 multiplications/divisions,
+        // which means that every frame        58080 multiplications/divisions took place
+        // instead of the minimum required     10140
         for (j = 0; j < 3; j ++)
         {
             if (mesh->vertexProjections[mesh->faces[i].indices[j]].x <= 0)
             {
                 vertices[j] = project(screen->width, screen->height, mesh->vertices[mesh->faces[i].indices[j]], transformMatrix);
                 mesh->vertexProjections[mesh->faces[i].indices[j]] = vertices[j];
-                cycles++;
             }
             else
                 vertices[j] = mesh->vertexProjections[mesh->faces[i].indices[j]];
         }
 
-
-
-        /*if (mesh->vertexProjections[mesh->faces[i].a].x <= 0)
-        {
-            pointA = project(screen->width, screen->height, mesh->vertices[mesh->faces[i].a], transformMatrix);
-            mesh->vertexProjections[mesh->faces[i].a] = pointA;
-            cycles++;
-        }
-        else
-            pointA = mesh->vertexProjections[mesh->faces[i].a];
-
-        if (mesh->vertexProjections[mesh->faces[i].b].x <= 0)
-        {
-            pointB = project(screen->width, screen->height, mesh->vertices[mesh->faces[i].b], transformMatrix);
-            mesh->vertexProjections[mesh->faces[i].b] = pointB;
-            cycles++;
-        }
-        else
-            pointB = mesh->vertexProjections[mesh->faces[i].b];
-
-        if (mesh->vertexProjections[mesh->faces[i].c].x <= 0)
-        {
-            pointC = project(screen->width, screen->height, mesh->vertices[mesh->faces[i].c], transformMatrix);
-            mesh->vertexProjections[mesh->faces[i].c] = pointC;
-            cycles++;
-        }
-        else
-            pointC = mesh->vertexProjections[mesh->faces[i].c];*/
-
-
-
-
-
-        /*vertexA = mesh->vertices[mesh->faces[i].a];
-        vertexB = mesh->vertices[mesh->faces[i].b];
-        vertexC = mesh->vertices[mesh->faces[i].c];*/
-
-        // pointA.x = vertexA.x; pointA.y = vertexA.y;
-        // pointB.x = vertexB.x; pointB.y = vertexB.y;
-        // pointC.x = vertexC.x; pointC.y = vertexC.y;
-
-
-        // pre-optimized version called project 2904 times
-        // for the suzanne.obj model that has    507 vertices
-        // one call of project amounts to         20 multiplications/divisions,
-        // which means that every frame        58080 multiplications/divisions took place
-        // instead of the minimum required     10140
-        /*pointA = project(screen->width, screen->height, vertexA, transformMatrix);
-        pointB = project(screen->width, screen->height, vertexB, transformMatrix);
-        pointC = project(screen->width, screen->height, vertexC, transformMatrix);*/
-
+        // if mode is 1 or 2, draw the lines between the vertices
         if (mode)
         {
             setpen(255, 255, 255, 0, 1);
-            moveto(vertices[0].x, vertices[0].y); //pointA.x, pointA.y);
-            lineto(vertices[1].x, vertices[1].y); //pointB.x, pointB.y);
-            lineto(vertices[2].x, vertices[2].y); //pointC.x, pointC.y);
-            lineto(vertices[0].x, vertices[0].y); //pointA.x, pointA.y);
+            moveto(vertices[0].x, vertices[0].y);
+            lineto(vertices[1].x, vertices[1].y);
+            lineto(vertices[2].x, vertices[2].y);
+            lineto(vertices[0].x, vertices[0].y);
         }
 
+        // if mode is 0 or 1, draw the vertices as pink dots
         if (mode <= 1)
         {
-            setpen(255, 0, 255, 0, 7);
-            drawPointOnScreen(screen, vertices[0]); //pointA);
-            drawPointOnScreen(screen, vertices[1]); //pointB);
-            drawPointOnScreen(screen, vertices[2]); //pointC);
+            setpen(255, 0, 255, 0, 3);
+            drawPointOnScreen(screen, vertices[0]);
+            drawPointOnScreen(screen, vertices[1]);
+            drawPointOnScreen(screen, vertices[2]);
         }
     }
 }
