@@ -383,7 +383,7 @@ void renderMesh(Screen *screen, Camera *camera, Mesh *mesh)
 {
     int i, j;
     Point2D vertices[3];
-    Matrix4x4 viewMatrix = createLookAtMatrix(camera->position, camera->target, createVector3(0, 1, 0));
+    Matrix4x4 viewMatrix = createLookAtMatrix(camera->position, camera->target, createVector3(0.0f, 1.0f, 0.0f));
     Matrix4x4 projectionMatrix =
         createPerspectiveMatrix(PI/3.0f, screen->width / (float)screen->height, 0.01f, 1000.0f);
 
