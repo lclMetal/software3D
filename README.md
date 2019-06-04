@@ -1,6 +1,7 @@
 ## Software3D - 3D for Game Editor
 
-Software3D (a temporary name) is a 3D library for Game Editor.
+Software3D (a temporary name) is a 3D library for [Game Editor](http://game-editor.com/Main_Page).  
+Opening the project (.ged file) requires Game Editor [version 1.4.0](http://game-editor.com/Download) or newer.
 
 ### Controls
 
