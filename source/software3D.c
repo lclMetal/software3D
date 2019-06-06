@@ -47,15 +47,14 @@ typedef struct ScreenStruct
     short height;
 }Screen;
 
-enum flagsEnum
-{
-    ENABLE_MOUSE       = (1 << 0),
-    ROTATE_X           = (1 << 1),
-    ROTATE_Y           = (1 << 2),
-    ROTATE_Z           = (1 << 3),
-    ROTATE_SINGLE_ONLY = (1 << 4),
-    ENABLE_AXES        = (1 << 5)
-}flags = ENABLE_AXES;
+const unsigned int ENABLE_MOUSE       = (1 << 0);
+const unsigned int ROTATE_X           = (1 << 1);
+const unsigned int ROTATE_Y           = (1 << 2);
+const unsigned int ROTATE_Z           = (1 << 3);
+const unsigned int ROTATE_SINGLE_ONLY = (1 << 4);
+const unsigned int ENABLE_AXES        = (1 << 5);
+const unsigned int BACKFACE_CULLING   = (1 << 6);
+unsigned int flags = ENABLE_AXES;
 
 Mesh *cube;
 Mesh *coords;
@@ -63,13 +62,13 @@ Camera camera;
 Screen screen;
 
 short mode = 0;
+int inspectFace = 0;
 
 Screen createScreen(short width, short height);
 Face createFace(short v1, short v2, short v3);
 Face createFaceWithNormal(short v1, short v2, short v3, short normal);
 void drawPointOnScreen(Screen *ptr, Point2D point);
 Mesh *newMesh(char meshName[256], int vertexCount, int faceCount, int normalCount);
-void fseekEndOfLine(FILE *f);
 MeshFile getMeshFileInfo(char fileName[256]);
 Mesh *readMeshFromFile(char fileName[256]);
 int setMeshVertex(Mesh *mesh, int vertexNum, Vector3 vertex);
@@ -186,67 +185,30 @@ Mesh *newMesh(char meshName[256], int vertexCount, int faceCount, int normalCoun
     return ptr;
 }
 
-void fseekEndOfLine(FILE *f)
-{
-    if (f)
-    {
-        char c;
-
-        while ((c = fgetc(f)) != '\n')
-        {
-            if (feof(f))
-                break;
-        }
-    }
-}
-
 MeshFile getMeshFileInfo(char fileName[256])
 {
     MeshFile mf; // it's mf for MeshFile, you barbaric ogre >:(
     FILE *f = fopen(fileName, "r+");
 
-    mf.vertexCount =
-    mf.faceCount   =
-    mf.normalCount = 0;
+    mf.vertexCount = mf.faceCount = mf.normalCount = 0;
 
     if (f)
     {
+        char line[256];
+
         while (1)
         {
-            char c = fgetc(f);
-
-            if (feof(f)) break;
-
-            switch (c)
+            if (fgets(line, sizeof line, f)) // read the file line by line
             {
-                case 'v': // this line is either a vertex or a normal
-                    c = fgetc(f);
-
-                    switch (c)
-                    {
-                        // only 'v' --> this is a vertex
-                        case ' ': mf.vertexCount ++;
-                            break;
-
-                        // 'vn' --> this is a normal
-                        case 'n': mf.normalCount ++;
-                            break;
-                    }
-                    break;
-
-                // 'f' --> this is a face
-                case 'f': mf.faceCount ++;
-                    break;
-
-                // end-of-line, nothing to see here
-                case '\n':
-                    break;
-
-                // any other character --> ignore, search for next line
-                default:
-                    fseekEndOfLine(f);
-                    break;
+                if (line[0] == 'v' && line[1] == ' ')      // this line is a vertex
+                    mf.vertexCount++;
+                else if (line[0] == 'v' && line[1] == 'n') // this line is a normal
+                    mf.normalCount++;
+                else if (line[0] == 'f' && line[1] == ' ') // this line is a face
+                    mf.faceCount++;
             }
+            else
+                break;
         }
 
         fclose(f);
@@ -257,89 +219,86 @@ MeshFile getMeshFileInfo(char fileName[256])
 
 Mesh *readMeshFromFile(char fileName[256])
 {
-    Mesh *mesh = NULL;
-    FILE *f = NULL;
+    FILE *f;
+    Mesh *mesh;
     MeshFile mf;
+    int read; // as in: 'red', not: 'reed' :P
+    char line[256] = "", errorMsg[256] = "";
+    int vertexNum = 0, faceNum = 0, normalNum = 0, failed = 0;
+    Vector3 vec;
+    Face face;
 
-    mf = getMeshFileInfo(fileName);
-
-    if (!mf.vertexCount)
+    if (!(mf = getMeshFileInfo(fileName)).vertexCount) // mesh info was invalid
         return NULL;
 
-    f = fopen(fileName, "r+");
-
-    if (!f)
+    if (!(mesh = newMesh(fileName, mf.vertexCount, mf.faceCount, mf.normalCount))) // allocation failed
         return NULL;
 
-    mesh = newMesh(fileName, mf.vertexCount, mf.faceCount , mf.normalCount);
-
-    if (!mesh)
-        return NULL;
-
-    if (f)
+    if (!(f = fopen(fileName, "r+"))) // file opening failed
     {
-        Vector3 vec = createVector3(0.0f, 0.0f, 0.0f);
-        Face face;
-        int vertexNum = 0, faceNum = 0, normalNum = 0;
+        free(mesh);
+        return NULL;
+    }
 
-        while (1)
+    while (1)
+    {
+        if (fgets(line, sizeof line, f)) // read the file line by line
         {
-            char c = fgetc(f), d;
-
-            if (feof(f))
-                break;
-
-            switch (c)
+            if (line[0] == 'v' && line[1] == ' ') // this line is a vertex
             {
-                case 'v': // this line is either a vertex or a normal
-                    d = fgetc(f);
+                if ((read = sscanf(line, "%*s %f %f %f", &vec.x, &vec.y, &vec.z)) == 4)
+                {
+                    setMeshVertex(mesh, vertexNum++, vec);
+                }
+                else
+                {
+                    failed = 1;
+                    sprintf(errorMsg, "Failed: Parsing vertex %d from file %s failed. %d", vertexNum, fileName, ftell(f));
+                }
+            }
+            else if (line[0] == 'v' && line[1] == 'n') // this line is a normal
+            {
+                if ((read = sscanf(line, "%*s %f %f %f", &vec.x, &vec.y, &vec.z)) == 4)
+                {
+                    setMeshNormal(mesh, normalNum++, vec);
+                }
+                else
+                {
+                    failed = 1;
+                    sprintf(errorMsg, "Failed: Parsing normal %d from file %s failed.", normalNum, fileName);
+                }
+            }
+            else if (line[0] == 'f' && line[1] == ' ') // this line is a face
+            {
+                if ((read = sscanf(line, "%*s %hd//%*hd %hd//%*hd %hd//%hd",
+                                &face.indices[0], &face.indices[1], &face.indices[2], &face.normal)) == 7)
+                {
+                    face.indices[0]--; // the file uses indices starting from 1, but
+                    face.indices[1]--; //     this program uses indices starting from 0
+                    face.indices[2]--; //     so the indices read from the file have to
+                    face.normal--;     //     be decremented by 1
+                    setMeshFace(mesh, faceNum++, face);
+                }
+                else
+                {
+                    failed = 1;
+                    sprintf(errorMsg, "Failed: Parsing face %d from file %s failed.", faceNum, fileName);
+                }
+            }
 
-                    switch (d)
-                    {
-                        // only 'v' --> this is a vertex
-                        case ' ':
-                            fscanf(f, "%f %f %f",
-                                    &vec.x, &vec.y, &vec.z);
-                            setMeshVertex(mesh, vertexNum++, vec);
-                            break;
-
-                        // 'vn' --> this is a normal
-                        case 'n':
-                            fscanf(f, " %f %f %f",
-                                    &vec.x, &vec.y, &vec.z);
-                            setMeshNormal(mesh, normalNum++, vec);
-                            break;
-
-                        default:
-                            break;
-                    }
-                    break;
-
-                // 'f' --> this is a face
-                case 'f':
-                    fscanf(f, "%hd//%hd %hd//%hd %hd//%hd",
-                            &face.indices[0], &face.normal,
-                            &face.indices[1], &face.normal,
-                            &face.indices[2], &face.normal);
-                    setMeshFace(mesh, faceNum++,
-                        createFaceWithNormal(face.indices[0] - 1,
-                                             face.indices[1] - 1,
-                                             face.indices[2] - 1, face.normal - 1));
-                    break;
-
-                // end-of-line, nothing to see here
-                case '\n':
-                    break;
-
-                // any other character --> ignore, search for next line
-                default:
-                    fseekEndOfLine(f);
-                    break;
+            if (failed) // something went wrong
+            {
+                free(mesh); // free the allocated memory
+                fclose(f);  // close the file
+                DEBUG_MSG_FROM(errorMsg, "readMeshFromFile"); // log the error message
+                return NULL;
             }
         }
-
-        fclose(f);
+        else
+            break;
     }
+
+    fclose(f);
 
     return mesh;
 }
@@ -411,6 +370,11 @@ void renderMesh(Screen *screen, Camera *camera, Mesh *mesh)
 
     for (i = 0; i < mesh->faceCount; i ++)
     {
+        if (flags & BACKFACE_CULLING && dotProductVector3(transformVector3ByMatrix(mesh->normals[mesh->faces[i].normal], mesh->orientation),
+                createVector3(mesh->vertices[mesh->faces[i].indices[0]].x - camera->position.x,
+                              mesh->vertices[mesh->faces[i].indices[0]].y - camera->position.y,
+                              mesh->vertices[mesh->faces[i].indices[0]].z - camera->position.z))>=0)continue;
+
         // pre-optimized version called project() once for every vertex
         // of every face, amounting to total    2904 times
         // for the suzanne.obj model that has    507 vertices
@@ -449,6 +413,15 @@ void renderMesh(Screen *screen, Camera *camera, Mesh *mesh)
             drawPointOnScreen(screen, vertices[0]);
             drawPointOnScreen(screen, vertices[1]);
             drawPointOnScreen(screen, vertices[2]);
+        }
+
+        if (i == inspectFace)
+        {
+            setpen(0, 255, 255, 0, 3);
+            moveto(vertices[0].x, vertices[0].y);
+            lineto(vertices[1].x, vertices[1].y);
+            lineto(vertices[2].x, vertices[2].y);
+            lineto(vertices[0].x, vertices[0].y);
         }
     }
 }

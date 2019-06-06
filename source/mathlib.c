@@ -145,8 +145,8 @@ Vector3 transformVector3ByMatrix(Vector3 vector, Matrix4x4 matrix)
     if (abs(divisor) < 0.0001f)
     {
         divisor = 0.0001f;
-        DEBUG_MSG_FROM("Failed: Can't divide by 0. CameraPosition and Vertex are equal!",
-                       "transformVector3ByMatrix");
+        /*DEBUG_MSG_FROM("Failed: Can't divide by 0. CameraPosition and Vertex are equal!",
+                       "transformVector3ByMatrix");*/
     }
 
     quaternion.w = 1.0f / divisor;
