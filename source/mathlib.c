@@ -21,7 +21,26 @@ typedef struct QuaternionStruct
 
 typedef struct Matrix4x4Struct
 {
-    float matrix[4][4];
+    //float matrix[4][4];
+    float m11;
+    float m12;
+    float m13;
+    float m14;
+
+    float m21;
+    float m22;
+    float m23;
+    float m24;
+
+    float m31;
+    float m32;
+    float m33;
+    float m34;
+
+    float m41;
+    float m42;
+    float m43;
+    float m44;
 }Matrix4x4;
 
 const Matrix4x4 emptyMatrix;
@@ -132,15 +151,15 @@ Vector3 transformVector3ByMatrix(Vector3 vector, Matrix4x4 matrix)
     Quaternion quaternion;
     Vector3 result;
 
-    quaternion.x = matrix.matrix[0][0] * vector.x + matrix.matrix[1][0] * vector.y +
-                   matrix.matrix[2][0] * vector.z + matrix.matrix[3][0];
-    quaternion.y = matrix.matrix[0][1] * vector.x + matrix.matrix[1][1] * vector.y +
-                   matrix.matrix[2][1] * vector.z + matrix.matrix[3][1];
-    quaternion.z = matrix.matrix[0][2] * vector.x + matrix.matrix[1][2] * vector.y +
-                   matrix.matrix[2][2] * vector.z + matrix.matrix[3][2];
+    quaternion.x = matrix.m11 * vector.x + matrix.m21 * vector.y +
+                   matrix.m31 * vector.z + matrix.m41;
+    quaternion.y = matrix.m12 * vector.x + matrix.m22 * vector.y +
+                   matrix.m32 * vector.z + matrix.m42;
+    quaternion.z = matrix.m13 * vector.x + matrix.m23 * vector.y +
+                   matrix.m33 * vector.z + matrix.m43;
 
-    divisor = matrix.matrix[0][3] * vector.x + matrix.matrix[1][3] * vector.y +
-              matrix.matrix[2][3] * vector.z + matrix.matrix[3][3];
+    divisor = matrix.m14 * vector.x + matrix.m24 * vector.y +
+              matrix.m34 * vector.z + matrix.m44;
 
     if (abs(divisor) < 0.0001f)
     {
@@ -188,25 +207,25 @@ Matrix4x4 createLookAtMatrix(Vector3 cameraPosition, Vector3 cameraTarget, Vecto
     Vector3 xAxis = normalizeVector3(crossProductVector3(cameraUp, zAxis));
     Vector3 yAxis = crossProductVector3(zAxis, xAxis);
 
-    result.matrix[0][0] =  xAxis.x;
-    result.matrix[0][1] =  yAxis.x;
-    result.matrix[0][2] =  zAxis.x;
-    result.matrix[0][3] =  0.0f;
+    result.m11 =  xAxis.x;
+    result.m12 =  yAxis.x;
+    result.m13 =  zAxis.x;
+    result.m14 =  0.0f;
 
-    result.matrix[1][0] =  xAxis.y;
-    result.matrix[1][1] =  yAxis.y;
-    result.matrix[1][2] =  zAxis.y;
-    result.matrix[1][3] =  0.0f;
+    result.m21 =  xAxis.y;
+    result.m22 =  yAxis.y;
+    result.m23 =  zAxis.y;
+    result.m24 =  0.0f;
 
-    result.matrix[2][0] =  xAxis.z;
-    result.matrix[2][1] =  yAxis.z;
-    result.matrix[2][2] =  zAxis.z;
-    result.matrix[2][3] =  0.0f;
+    result.m31 =  xAxis.z;
+    result.m32 =  yAxis.z;
+    result.m33 =  zAxis.z;
+    result.m34 =  0.0f;
 
-    result.matrix[3][0] = -dotProductVector3(xAxis, cameraPosition);
-    result.matrix[3][1] = -dotProductVector3(yAxis, cameraPosition);
-    result.matrix[3][2] = -dotProductVector3(zAxis, cameraPosition);
-    result.matrix[3][3] =  1.0f;
+    result.m41 = -dotProductVector3(xAxis, cameraPosition);
+    result.m42 = -dotProductVector3(yAxis, cameraPosition);
+    result.m43 = -dotProductVector3(zAxis, cameraPosition);
+    result.m44 =  1.0f;
 
     return result;
 }
@@ -230,25 +249,25 @@ Matrix4x4 createRotationXYZMatrix(float x, float y, float z)
     xcoszcos = xcos * zcos;
     ysinzsin = ysin * zsin;
 
-    result.matrix[0][0] =  ycos * zcos;
-    result.matrix[0][1] =  zcosxsin * ysin + xcos * zsin;
-    result.matrix[0][2] =  -xcoszcos * ysin + xsin * zsin;
-    result.matrix[0][3] =  0.0f;
+    result.m11 =  ycos * zcos;
+    result.m12 =  zcosxsin * ysin + xcos * zsin;
+    result.m13 =  -xcoszcos * ysin + xsin * zsin;
+    result.m14 =  0.0f;
 
-    result.matrix[1][0] =  -ycos * zsin;
-    result.matrix[1][1] =  xcoszcos - xsin * ysinzsin;
-    result.matrix[1][2] =  zcosxsin + xcos * ysinzsin;
-    result.matrix[1][3] =  0.0f;
+    result.m21 =  -ycos * zsin;
+    result.m22 =  xcoszcos - xsin * ysinzsin;
+    result.m23 =  zcosxsin + xcos * ysinzsin;
+    result.m24 =  0.0f;
 
-    result.matrix[2][0] =  ysin;
-    result.matrix[2][1] =  -ycos * xsin;
-    result.matrix[2][2] =  xcos * ycos;
-    result.matrix[2][3] =  0.0f;
+    result.m31 =  ysin;
+    result.m32 =  -ycos * xsin;
+    result.m33 =  xcos * ycos;
+    result.m34 =  0.0f;
 
-    result.matrix[3][0] =  0.0f;
-    result.matrix[3][1] =  0.0f;
-    result.matrix[3][2] =  0.0f;
-    result.matrix[3][3] =  1.0f;
+    result.m41 =  0.0f;
+    result.m42 =  0.0f;
+    result.m43 =  0.0f;
+    result.m44 =  1.0f;
 
     return result;
 }
@@ -289,18 +308,18 @@ Matrix4x4 createPerspectiveMatrix(float fov, float aspectRatio, float near, floa
         return emptyMatrix;
     }
 
-    result.matrix[0][0] = xScale;
-    result.matrix[0][1] = result.matrix[0][2] = result.matrix[0][3] = 0.0f;
+    result.m11 = xScale;
+    result.m12 = result.m13 = result.m14 = 0.0f;
 
-    result.matrix[1][1] = yScale;
-    result.matrix[1][0] = result.matrix[1][2] = result.matrix[1][3] = 0.0f;
+    result.m22 = yScale;
+    result.m21 = result.m23 = result.m24 = 0.0f;
 
-    result.matrix[2][2] = far / (near - far);
-    result.matrix[2][3] = -1.0f;
-    result.matrix[2][0] = result.matrix[2][1] = 0.0f;
+    result.m33 = far / (near - far);
+    result.m34 = -1.0f;                 // SOMETHING TO DO WITH THIS
+    result.m31 = result.m32 = 0.0f;
 
-    result.matrix[3][2] = near * far / (near - far);
-    result.matrix[3][0] = result.matrix[3][1] = result.matrix[3][3] = 0.0f;
+    result.m43 = near * far / (near - far);
+    result.m41 = result.m42 = result.m44 = 0.0f;
 
     return result;
 }
@@ -309,25 +328,25 @@ Matrix4x4 createTranslationMatrix(float x, float y, float z)
 {
     Matrix4x4 result;
 
-    result.matrix[0][0] = 1.0f;
-    result.matrix[0][1] = 0.0f;
-    result.matrix[0][2] = 0.0f;
-    result.matrix[0][3] = 0.0f;
+    result.m11 = 1.0f;
+    result.m12 = 0.0f;
+    result.m13 = 0.0f;
+    result.m14 = 0.0f;
 
-    result.matrix[1][0] = 0.0f;
-    result.matrix[1][1] = 1.0f;
-    result.matrix[1][2] = 0.0f;
-    result.matrix[1][3] = 0.0f;
+    result.m21 = 0.0f;
+    result.m22 = 1.0f;
+    result.m23 = 0.0f;
+    result.m24 = 0.0f;
 
-    result.matrix[2][0] = 0.0f;
-    result.matrix[2][1] = 0.0f;
-    result.matrix[2][2] = 1.0f;
-    result.matrix[2][3] = 0.0f;
+    result.m31 = 0.0f;
+    result.m32 = 0.0f;
+    result.m33 = 1.0f;
+    result.m34 = 0.0f;
 
-    result.matrix[3][0] = x;
-    result.matrix[3][1] = y;
-    result.matrix[3][2] = z;
-    result.matrix[3][3] = 1.0f;
+    result.m41 = x;
+    result.m42 = y;
+    result.m43 = z;
+    result.m44 = 1.0f;
 
     return result;
 }
@@ -336,25 +355,100 @@ Matrix4x4 multiplyMatrices(Matrix4x4 a, Matrix4x4 b)
 {
     Matrix4x4 result;
 
-    result.matrix[0][0] = a.matrix[0][0] * b.matrix[0][0] + a.matrix[0][1] * b.matrix[1][0] + a.matrix[0][2] * b.matrix[2][0] + a.matrix[0][3] * b.matrix[3][0];
-    result.matrix[0][1] = a.matrix[0][0] * b.matrix[0][1] + a.matrix[0][1] * b.matrix[1][1] + a.matrix[0][2] * b.matrix[2][1] + a.matrix[0][3] * b.matrix[3][1];
-    result.matrix[0][2] = a.matrix[0][0] * b.matrix[0][2] + a.matrix[0][1] * b.matrix[1][2] + a.matrix[0][2] * b.matrix[2][2] + a.matrix[0][3] * b.matrix[3][2];
-    result.matrix[0][3] = a.matrix[0][0] * b.matrix[0][3] + a.matrix[0][1] * b.matrix[1][3] + a.matrix[0][2] * b.matrix[2][3] + a.matrix[0][3] * b.matrix[3][3];
+    result.m11 = a.m11 * b.m11 + a.m12 * b.m21 + a.m13 * b.m31 + a.m14 * b.m41;
+    result.m12 = a.m11 * b.m12 + a.m12 * b.m22 + a.m13 * b.m32 + a.m14 * b.m42;
+    result.m13 = a.m11 * b.m13 + a.m12 * b.m23 + a.m13 * b.m33 + a.m14 * b.m43;
+    result.m14 = a.m11 * b.m14 + a.m12 * b.m24 + a.m13 * b.m34 + a.m14 * b.m44;
 
-    result.matrix[1][0] = a.matrix[1][0] * b.matrix[0][0] + a.matrix[1][1] * b.matrix[1][0] + a.matrix[1][2] * b.matrix[2][0] + a.matrix[1][3] * b.matrix[3][0];
-    result.matrix[1][1] = a.matrix[1][0] * b.matrix[0][1] + a.matrix[1][1] * b.matrix[1][1] + a.matrix[1][2] * b.matrix[2][1] + a.matrix[1][3] * b.matrix[3][1];
-    result.matrix[1][2] = a.matrix[1][0] * b.matrix[0][2] + a.matrix[1][1] * b.matrix[1][2] + a.matrix[1][2] * b.matrix[2][2] + a.matrix[1][3] * b.matrix[3][2];
-    result.matrix[1][3] = a.matrix[1][0] * b.matrix[0][3] + a.matrix[1][1] * b.matrix[1][3] + a.matrix[1][2] * b.matrix[2][3] + a.matrix[1][3] * b.matrix[3][3];
+    result.m21 = a.m21 * b.m11 + a.m22 * b.m21 + a.m23 * b.m31 + a.m24 * b.m41;
+    result.m22 = a.m21 * b.m12 + a.m22 * b.m22 + a.m23 * b.m32 + a.m24 * b.m42;
+    result.m23 = a.m21 * b.m13 + a.m22 * b.m23 + a.m23 * b.m33 + a.m24 * b.m43;
+    result.m24 = a.m21 * b.m14 + a.m22 * b.m24 + a.m23 * b.m34 + a.m24 * b.m44;
 
-    result.matrix[2][0] = a.matrix[2][0] * b.matrix[0][0] + a.matrix[2][1] * b.matrix[1][0] + a.matrix[2][2] * b.matrix[2][0] + a.matrix[2][3] * b.matrix[3][0];
-    result.matrix[2][1] = a.matrix[2][0] * b.matrix[0][1] + a.matrix[2][1] * b.matrix[1][1] + a.matrix[2][2] * b.matrix[2][1] + a.matrix[2][3] * b.matrix[3][1];
-    result.matrix[2][2] = a.matrix[2][0] * b.matrix[0][2] + a.matrix[2][1] * b.matrix[1][2] + a.matrix[2][2] * b.matrix[2][2] + a.matrix[2][3] * b.matrix[3][2];
-    result.matrix[2][3] = a.matrix[2][0] * b.matrix[0][3] + a.matrix[2][1] * b.matrix[1][3] + a.matrix[2][2] * b.matrix[2][3] + a.matrix[2][3] * b.matrix[3][3];
+    result.m31 = a.m31 * b.m11 + a.m32 * b.m21 + a.m33 * b.m31 + a.m34 * b.m41;
+    result.m32 = a.m31 * b.m12 + a.m32 * b.m22 + a.m33 * b.m32 + a.m34 * b.m42;
+    result.m33 = a.m31 * b.m13 + a.m32 * b.m23 + a.m33 * b.m33 + a.m34 * b.m43;
+    result.m34 = a.m31 * b.m14 + a.m32 * b.m24 + a.m33 * b.m34 + a.m34 * b.m44;
 
-    result.matrix[3][0] = a.matrix[3][0] * b.matrix[0][0] + a.matrix[3][1] * b.matrix[1][0] + a.matrix[3][2] * b.matrix[2][0] + a.matrix[3][3] * b.matrix[3][0];
-    result.matrix[3][1] = a.matrix[3][0] * b.matrix[0][1] + a.matrix[3][1] * b.matrix[1][1] + a.matrix[3][2] * b.matrix[2][1] + a.matrix[3][3] * b.matrix[3][1];
-    result.matrix[3][2] = a.matrix[3][0] * b.matrix[0][2] + a.matrix[3][1] * b.matrix[1][2] + a.matrix[3][2] * b.matrix[2][2] + a.matrix[3][3] * b.matrix[3][2];
-    result.matrix[3][3] = a.matrix[3][0] * b.matrix[0][3] + a.matrix[3][1] * b.matrix[1][3] + a.matrix[3][2] * b.matrix[2][3] + a.matrix[3][3] * b.matrix[3][3];
+    result.m41 = a.m41 * b.m11 + a.m42 * b.m21 + a.m43 * b.m31 + a.m44 * b.m41;
+    result.m42 = a.m41 * b.m12 + a.m42 * b.m22 + a.m43 * b.m32 + a.m44 * b.m42;
+    result.m43 = a.m41 * b.m13 + a.m42 * b.m23 + a.m43 * b.m33 + a.m44 * b.m43;
+    result.m44 = a.m41 * b.m14 + a.m42 * b.m24 + a.m43 * b.m34 + a.m44 * b.m44;
+
+    return result;
+}
+
+Matrix4x4 Invert(Matrix4x4 matrix)
+{
+    Matrix4x4 result;
+
+    float a = matrix.m11, b = matrix.m12, c = matrix.m13, d = matrix.m14;
+    float e = matrix.m21, f = matrix.m22, g = matrix.m23, h = matrix.m24;
+    float i = matrix.m31, j = matrix.m32, k = matrix.m33, l = matrix.m34;
+    float m = matrix.m41, n = matrix.m42, o = matrix.m43, p = matrix.m44;
+
+    float kp_lo = k * p - l * o;
+    float jp_ln = j * p - l * n;
+    float jo_kn = j * o - k * n;
+    float ip_lm = i * p - l * m;
+    float io_km = i * o - k * m;
+    float in_jm = i * n - j * m;
+
+    float a11 = +(f * kp_lo - g * jp_ln + h * jo_kn);
+    float a12 = -(e * kp_lo - g * ip_lm + h * io_km);
+    float a13 = +(e * jp_ln - f * ip_lm + h * in_jm);
+    float a14 = -(e * jo_kn - f * io_km + g * in_jm);
+
+    float det = a * a11 + b * a12 + c * a13 + d * a14;
+
+    float invDet, gp_ho, fp_hn, fo_gn, ep_hm, eo_gm, en_fm,
+    gl_hk, fl_hj, fk_gj, el_hi, ek_gi, ej_fi;
+
+    if (abs(det) < 0.0001f)
+    {
+        Matrix4x4 asdf = {0.0f, 0.0f, 0.0f, 0.0f,
+                          0.0f, 0.0f, 0.0f, 0.0f,
+                          0.0f, 0.0f, 0.0f, 0.0f,
+                          0.0f, 0.0f, 0.0f, 0.0f};
+        result = asdf;
+        return result;
+    }
+
+    invDet = 1.0f / det;
+
+    result.m11 = a11 * invDet;
+    result.m21 = a12 * invDet;
+    result.m31 = a13 * invDet;
+    result.m41 = a14 * invDet;
+
+    result.m12 = -(b * kp_lo - c * jp_ln + d * jo_kn) * invDet;
+    result.m22 = +(a * kp_lo - c * ip_lm + d * io_km) * invDet;
+    result.m32 = -(a * jp_ln - b * ip_lm + d * in_jm) * invDet;
+    result.m42 = +(a * jo_kn - b * io_km + c * in_jm) * invDet;
+
+    gp_ho = g * p - h * o;
+    fp_hn = f * p - h * n;
+    fo_gn = f * o - g * n;
+    ep_hm = e * p - h * m;
+    eo_gm = e * o - g * m;
+    en_fm = e * n - f * m;
+
+    result.m13 = +(b * gp_ho - c * fp_hn + d * fo_gn) * invDet;
+    result.m23 = -(a * gp_ho - c * ep_hm + d * eo_gm) * invDet;
+    result.m33 = +(a * fp_hn - b * ep_hm + d * en_fm) * invDet;
+    result.m43 = -(a * fo_gn - b * eo_gm + c * en_fm) * invDet;
+
+    gl_hk = g * l - h * k;
+    fl_hj = f * l - h * j;
+    fk_gj = f * k - g * j;
+    el_hi = e * l - h * i;
+    ek_gi = e * k - g * i;
+    ej_fi = e * j - f * i;
+
+    result.m14 = -(b * gl_hk - c * fl_hj + d * fk_gj) * invDet;
+    result.m24 = +(a * gl_hk - c * el_hi + d * ek_gi) * invDet;
+    result.m34 = -(a * fl_hj - b * el_hi + d * ej_fi) * invDet;
+    result.m44 = +(a * fk_gj - b * ek_gi + c * ej_fi) * invDet;
 
     return result;
 }

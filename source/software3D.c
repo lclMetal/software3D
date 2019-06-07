@@ -347,6 +347,7 @@ void renderMesh(Screen *screen, Camera *camera, Mesh *mesh)
         createPerspectiveMatrix(PI/3.0f, screen->width / (float)screen->height, 0.01f, 1000.0f);
 
     Matrix4x4 worldMatrix, tempMatrix, transformMatrix;
+    Vector3 invertedCamera;
 
     // perform rotation one by one for each axis
     // https://gamedev.stackexchange.com/questions/67199/how-to-rotate-an-object-around-world-aligned-axes/67269#67269
@@ -362,6 +363,8 @@ void renderMesh(Screen *screen, Camera *camera, Mesh *mesh)
     tempMatrix = multiplyMatrices(worldMatrix, viewMatrix);
     transformMatrix = multiplyMatrices(tempMatrix, projectionMatrix);
 
+    invertedCamera = transformVector3ByMatrix(camera->position, Invert(transformMatrix));
+
     // reset the array of projections
     for (i = 0; i < mesh->vertexCount; i++)
     {
@@ -370,10 +373,9 @@ void renderMesh(Screen *screen, Camera *camera, Mesh *mesh)
 
     for (i = 0; i < mesh->faceCount; i ++)
     {
-        if (flags & BACKFACE_CULLING && dotProductVector3(transformVector3ByMatrix(mesh->normals[mesh->faces[i].normal], mesh->orientation),
-                createVector3(mesh->vertices[mesh->faces[i].indices[0]].x - camera->position.x,
-                              mesh->vertices[mesh->faces[i].indices[0]].y - camera->position.y,
-                              mesh->vertices[mesh->faces[i].indices[0]].z - camera->position.z))>=0)continue;
+        if (flags & BACKFACE_CULLING &&
+                dotProductVector3(
+                    subtractVector3(mesh->vertices[mesh->faces[i].indices[0]], invertedCamera), mesh->normals[mesh->faces[i].normal]) >= 0)continue;
 
         // pre-optimized version called project() once for every vertex
         // of every face, amounting to total    2904 times
