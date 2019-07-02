@@ -363,7 +363,7 @@ void renderMesh(Screen *screen, Camera *camera, Mesh *mesh)
     tempMatrix = multiplyMatrices(worldMatrix, viewMatrix);
     transformMatrix = multiplyMatrices(tempMatrix, projectionMatrix);
 
-    invertedCamera = transformVector3ByMatrix(camera->position, Invert(transformMatrix));
+    invertedCamera = transformVector3ByMatrix(camera->position, Invert(worldMatrix));
 
     // reset the array of projections
     for (i = 0; i < mesh->vertexCount; i++)
@@ -373,11 +373,9 @@ void renderMesh(Screen *screen, Camera *camera, Mesh *mesh)
 
     for (i = 0; i < mesh->faceCount; i ++)
     {
-        // backface culling disabled for now
-        //     because of a bug when camera is at z=1
-        /*if (flags & BACKFACE_CULLING &&
+        if (flags & BACKFACE_CULLING &&
                 dotProductVector3(
-                    subtractVector3(mesh->vertices[mesh->faces[i].indices[0]], invertedCamera), mesh->normals[mesh->faces[i].normal]) >= 0)continue;*/
+                    subtractVector3(mesh->vertices[mesh->faces[i].indices[0]], invertedCamera), mesh->normals[mesh->faces[i].normal]) >= 0)continue;
 
         // pre-optimized version called project() once for every vertex
         // of every face, amounting to total    2904 times

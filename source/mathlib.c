@@ -21,7 +21,6 @@ typedef struct QuaternionStruct
 
 typedef struct Matrix4x4Struct
 {
-    //float matrix[4][4];
     float m11;
     float m12;
     float m13;
@@ -161,11 +160,12 @@ Vector3 transformVector3ByMatrix(Vector3 vector, Matrix4x4 matrix)
     divisor = matrix.m14 * vector.x + matrix.m24 * vector.y +
               matrix.m34 * vector.z + matrix.m44;
 
+
     if (abs(divisor) < 0.0001f)
     {
-        divisor = 0.0001f;
-        /*DEBUG_MSG_FROM("Failed: Can't divide by 0. CameraPosition and Vertex are equal!",
-                       "transformVector3ByMatrix");*/
+        DEBUG_MSG_FROM("Failed: Can't divide by 0.",
+                       "transformVector3ByMatrix");
+        return vector;
     }
 
     quaternion.w = 1.0f / divisor;
@@ -315,7 +315,7 @@ Matrix4x4 createPerspectiveMatrix(float fov, float aspectRatio, float near, floa
     result.m21 = result.m23 = result.m24 = 0.0f;
 
     result.m33 = far / (near - far);
-    result.m34 = -1.0f;                 // SOMETHING TO DO WITH THIS
+    result.m34 = -1.0f;
     result.m31 = result.m32 = 0.0f;
 
     result.m43 = near * far / (near - far);
@@ -406,12 +406,7 @@ Matrix4x4 Invert(Matrix4x4 matrix)
 
     if (abs(det) < 0.0001f)
     {
-        Matrix4x4 asdf = {0.0f, 0.0f, 0.0f, 0.0f,
-                          0.0f, 0.0f, 0.0f, 0.0f,
-                          0.0f, 0.0f, 0.0f, 0.0f,
-                          0.0f, 0.0f, 0.0f, 0.0f};
-        result = asdf;
-        return result;
+        return emptyMatrix;
     }
 
     invDet = 1.0f / det;
