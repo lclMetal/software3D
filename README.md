@@ -5,7 +5,7 @@ Opening the project (.ged file) requires Game Editor [version 1.4.0](http://game
 
 ### Controls
 
-- **F1**: toggle mouse look (currently broken), default = off
+- **F1**: toggle axis visualizers, default = on
 - **F2/F3/F4**: toggle object rotation around x/y/z axis
     - current states shown as last three numbers on bottom left
 - **F5**: reset object orientation
@@ -15,6 +15,8 @@ Opening the project (.ged file) requires Game Editor [version 1.4.0](http://game
     - 0: vertices
     - 1: wireframe and vertices
     - 2: wireframe
+    - 3: color only
+- **F8**: toggle backface culling, default = off
 - **WS/AD/QE**: move object (+-z, -+x, -+y)
 - **↑↓/←→/LCTRL, SPACE**: move camera (+-z, -+x, -+Y)
 - **§ (key above tab)**:
