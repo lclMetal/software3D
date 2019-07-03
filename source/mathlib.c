@@ -44,6 +44,8 @@ typedef struct Matrix4x4Struct
 
 const Matrix4x4 emptyMatrix;
 
+int diffSign(float val1, float val2, float err);
+int largestOf3(float val1, float val2, float val3);
 Point2D createPoint2D(float x, float y);
 Point2D project(short width, short height, Vector3 vertex, Matrix4x4 projectionMatrix);
 Vector3 createVector3(float x, float y, float z);
@@ -61,6 +63,25 @@ Matrix4x4 createRotationXYZMatrix(float x, float y, float z);
 Matrix4x4 createPerspectiveMatrix(float fov, float aspectRatio, float near, float far);
 Matrix4x4 createTranslationMatrix(float x, float y, float z);
 Matrix4x4 multiplyMatrices(Matrix4x4 a, Matrix4x4 b);
+
+int diffSign(float val1, float val2, float err)
+{
+    float difference = val1 - val2;
+
+    if (difference < -err) return -1;
+    if (difference >  err) return 1;
+    return 0;
+}
+
+int largestOf3(float val1, float val2, float val3)
+{
+    float err = 0.001;
+    float largest = max(val1, max(val2, val3));
+
+    if (!diffSign(largest, val1, err)) return 0;
+    if (!diffSign(largest, val2, err)) return 1;
+    return 2;
+}
 
 Point2D createPoint2D(float x, float y)
 {
@@ -121,6 +142,11 @@ Vector3 normalizeVector3(Vector3 vector)
 Vector3 subtractVector3(Vector3 a, Vector3 b)
 {
     return createVector3(a.x - b.x, a.y - b.y, a.z - b.z);
+}
+
+Vector3 addVector3(Vector3 a, Vector3 b)
+{
+    return createVector3(a.x + b.x, a.y + b.y, a.z + b.z);
 }
 
 Vector3 crossProductVector3(Vector3 a, Vector3 b)

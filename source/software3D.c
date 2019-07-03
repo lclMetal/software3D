@@ -41,6 +41,13 @@ typedef struct MeshFileStruct
     int normalCount;
 }MeshFile;
 
+typedef struct TriangleStruct
+{
+    Point2D p1;
+    Point2D p2;
+    Point2D p3;
+}Triangle;
+
 typedef struct ScreenStruct
 {
     short width;
@@ -76,6 +83,7 @@ int setMeshFace(Mesh *mesh, int faceNum, Face face);
 int setMeshNormal(Mesh *mesh, int normalNum, Vector3 normal);
 void setMeshOrientation(Mesh *mesh, Vector3 orientation);
 void renderMesh(Screen *screen, Camera *camera, Mesh *mesh);
+void fillTriangle(Triangle triangle, unsigned char r, unsigned char g, unsigned char b);
 void destroyMesh(Mesh *mesh);
 
 Screen createScreen(short width, short height)
@@ -341,6 +349,8 @@ void setMeshOrientation(Mesh *mesh, Vector3 orientation)
 void renderMesh(Screen *screen, Camera *camera, Mesh *mesh)
 {
     int i, j;
+    Triangle tris;
+    float shading;
     Point2D vertices[3];
     Matrix4x4 viewMatrix = createLookAtMatrix(camera->position, camera->target, createVector3(0.0f, 1.0f, 0.0f));
     Matrix4x4 projectionMatrix =
@@ -398,8 +408,25 @@ void renderMesh(Screen *screen, Camera *camera, Mesh *mesh)
                 vertices[j] = mesh->vertexProjections[mesh->faces[i].indices[j]];
         }
 
+        {
+            Vector3 vec1;
+            Vector3 vec2;
+
+            vec1 = mesh->normals[mesh->faces[i].normal];
+            vec2 = transformVector3ByMatrix(createVector3(10*sin(frame/80.0), 10, 10*cos(frame/80.0)), Invert(worldMatrix));
+            // vec2 = transformVector3ByMatrix(createVector3(10, 10, 10), Invert(worldMatrix));
+
+            shading = max(0.0f, dotProductVector3(vec1, vec2) / (magnitudeVector3(vec1) * magnitudeVector3(vec2)));
+        }
+
+        tris.p1 = mesh->vertexProjections[mesh->faces[i].indices[0]];
+        tris.p2 = mesh->vertexProjections[mesh->faces[i].indices[1]];
+        tris.p3 = mesh->vertexProjections[mesh->faces[i].indices[2]];
+
+        fillTriangle(tris, 0, 255 * shading, 0);
+
         // if mode is 1 or 2, draw the lines between the vertices
-        if (mode)
+        if (mode && mode < 3)
         {
             setpen(255, 255, 255, 0, 1);
             moveto(vertices[0].x, vertices[0].y);
@@ -426,6 +453,110 @@ void renderMesh(Screen *screen, Camera *camera, Mesh *mesh)
             lineto(vertices[0].x, vertices[0].y);
         }
     }
+}
+
+void fillTriangle(Triangle triangle, unsigned char rr, unsigned char gg, unsigned char bb)
+{
+    float h, x, y, ang, size, sideLength;
+    float a, b, c, a2, b2, c2, ang1, ang2, ang3;
+
+    Triangle tri2;
+
+    Vector3 vec = crossProductVector3(
+        subtractVector3(createVector3(triangle.p2.x, triangle.p2.y, 0),
+                        createVector3(triangle.p1.x, triangle.p1.y, 0)),
+        subtractVector3(createVector3(triangle.p3.x, triangle.p3.y, 0),
+                        createVector3(triangle.p1.x, triangle.p1.y, 0)));
+    if (vec.z > 0)
+    {
+        Triangle temp;
+        temp = triangle;
+        triangle.p2 = temp.p3;
+        triangle.p3 = temp.p2;
+    }
+
+    a = distance(triangle.p1.x, triangle.p1.y, triangle.p2.x, triangle.p2.y);
+    b = distance(triangle.p2.x, triangle.p2.y, triangle.p3.x, triangle.p3.y);
+    c = distance(triangle.p3.x, triangle.p3.y, triangle.p1.x, triangle.p1.y);
+
+    a2 = a * a;
+    b2 = b * b;
+    c2 = c * c;
+
+    ang1 = acos((a2 + c2 - b2) / max(0.0001f, (float)(2*a*c))); // illegal division by 0
+    ang2 = acos((a2 + b2 - c2) / max(0.0001f, (float)(2*a*b)));
+    ang3 = acos((b2 + c2 - a2) / max(0.0001f, (float)(2*b*c)));
+
+    SET_TRIANGLE(0, 0, rr, gg, bb);
+    SendActivationEvent("tri.0");
+
+    switch (largestOf3(ang1, ang2, ang3))
+    {
+        case 0:
+            tri2 = triangle;
+            break;
+
+        case 1:
+            tri2.p1 = triangle.p2;
+            tri2.p2 = triangle.p3;
+            tri2.p3 = triangle.p1;
+            break;
+
+        case 2:
+            tri2.p1 = triangle.p3;
+            tri2.p2 = triangle.p1;
+            tri2.p3 = triangle.p2;
+            break;
+    }
+
+    a = distance(tri2.p1.x, tri2.p1.y, tri2.p2.x, tri2.p2.y);
+    b = distance(tri2.p2.x, tri2.p2.y, tri2.p3.x, tri2.p3.y);
+    c = distance(tri2.p3.x, tri2.p3.y, tri2.p1.x, tri2.p1.y);
+
+    a2 = a * a;
+    b2 = b * b;
+    c2 = c * c;
+
+    ang1 = acos((a2 + c2 - b2)/(float)(2*a*c));
+    ang2 = acos((a2 + b2 - c2)/(float)(2*a*b));
+    ang3 = acos((b2 + c2 - a2)/(float)(2*b*c));
+
+    ang = degtorad(direction(tri2.p2.x, tri2.p2.y, tri2.p3.x, tri2.p3.y));
+    h = distance(tri2.p1.x, tri2.p1.y, tri2.p2.x, tri2.p2.y);
+    sideLength = cos(ang2) * h;
+
+    x = cos(ang) * sideLength;
+    y = sin(ang) * sideLength;
+
+    size = (ang3 <= PI / 4.0f)
+        ?distance(tri2.p2.x + x, tri2.p2.y - y, tri2.p3.x, tri2.p3.y)/46.0
+        :distance(tri2.p2.x + x, tri2.p2.y - y, tri2.p1.x, tri2.p1.y)/46.0;
+
+    SET_TRIANGLE((radtodeg(ang3) / 2.0), (direction(tri2.p2.x + x, tri2.p2.y - y,
+                                                   tri2.p3.x, tri2.p3.y)/2.0f),
+                                                   rr, gg, bb);
+
+    SendActivationEvent("tri.0");
+    draw_from("tri", tri2.p2.x + x, tri2.p2.y - y,size);
+
+    size = ((ang1 - (PI / 2.0f - ang3)) <= PI / 4.0f)
+        ?distance(tri2.p2.x + x, tri2.p2.y - y, tri2.p1.x, tri2.p1.y)/46.0
+        :distance(tri2.p2.x + x, tri2.p2.y - y, tri2.p2.x, tri2.p2.y)/46.0;
+
+     SET_TRIANGLE(((radtodeg(ang1) - (90.0 - radtodeg(ang3))) / 2.0),
+        (direction(tri2.p2.x + x, tri2.p2.y - y,
+                        tri2.p1.x, tri2.p1.y)/2.0f),
+                        rr, gg, bb);
+    SendActivationEvent("tri.0");
+    draw_from("tri", tri2.p2.x + x, tri2.p2.y - y, size);
+
+    /*setpen(0, 255, 255, 0, 2);
+    moveto(tri2.p2.x + x, tri2.p2.y - y);
+    lineto(tri2.p1.x, tri2.p1.y);
+    lineto(tri2.p2.x, tri2.p2.y);
+    lineto(tri2.p3.x, tri2.p3.y);
+    lineto(tri2.p1.x, tri2.p1.y);
+    setpen(0, 255, 0, 0, 1);*/
 }
 
 void destroyMesh(Mesh *mesh)
