@@ -3,10 +3,24 @@
 // tutorial-series-learning-how-to-write-a-3d-soft-engine-from-scratch-in-c-
 // typescript-or-javascript/
 
+#define PLANE_NEAR   0
+#define PLANE_FAR    1
+#define PLANE_BOTTOM 2
+#define PLANE_TOP    3
+#define PLANE_LEFT   4
+#define PLANE_RIGHT  5
+
+typedef struct PlaneStruct
+{
+    Vector3 normal;
+    float d;
+}Plane;
+
 typedef struct CameraStruct
 {
     Vector3 position;
     Vector3 target;
+    Plane frustum[6];
 }Camera;
 
 typedef struct FaceStruct
@@ -61,16 +75,19 @@ const unsigned int ROTATE_Z           = (1 << 3);
 const unsigned int ROTATE_SINGLE_ONLY = (1 << 4);
 const unsigned int ENABLE_AXES        = (1 << 5);
 const unsigned int BACKFACE_CULLING   = (1 << 6);
-unsigned int flags = ENABLE_AXES;
+unsigned int flags = ENABLE_AXES | BACKFACE_CULLING;
 
 Mesh *cube;
 Mesh *coords;
 Camera camera;
 Screen screen;
 
-short mode = 0;
+short mode = 3;
 int inspectFace = 0;
 
+void setCameraFrustum(Camera *camera, Matrix4x4 matrix);
+void setCoefficients(Plane *pl, float a, float b, float c, float d);
+int pointInCameraFrustum(Camera *camera, Vector3 vec);
 Screen createScreen(short width, short height);
 Face createFace(short v1, short v2, short v3);
 Face createFaceWithNormal(short v1, short v2, short v3, short normal);
@@ -85,6 +102,88 @@ void setMeshOrientation(Mesh *mesh, Vector3 orientation);
 void renderMesh(Screen *screen, Camera *camera, Mesh *mesh);
 void fillTriangle(Triangle triangle, unsigned char r, unsigned char g, unsigned char b);
 void destroyMesh(Mesh *mesh);
+
+void setCameraFrustum(Camera *camera, Matrix4x4 matrix)
+{
+    setCoefficients(&camera->frustum[PLANE_NEAR], matrix.m13 + matrix.m14,
+                                                  matrix.m23 + matrix.m24,
+                                                  matrix.m33 + matrix.m34,
+                                                  matrix.m43 + matrix.m44);
+
+    setCoefficients(&camera->frustum[PLANE_FAR], -matrix.m13 + matrix.m14,
+                                                 -matrix.m23 + matrix.m24,
+                                                 -matrix.m33 + matrix.m34,
+                                                 -matrix.m43 + matrix.m44);
+
+    setCoefficients(&camera->frustum[PLANE_TOP], matrix.m12 + matrix.m14,
+                                                    matrix.m22 + matrix.m24,
+                                                    matrix.m32 + matrix.m34,
+                                                    matrix.m42 + matrix.m44);
+
+    setCoefficients(&camera->frustum[PLANE_BOTTOM], -matrix.m12 + matrix.m14,
+                                                 -matrix.m22 + matrix.m24,
+                                                 -matrix.m32 + matrix.m34,
+                                                 -matrix.m42 + matrix.m44);
+
+    setCoefficients(&camera->frustum[PLANE_RIGHT], matrix.m11 + matrix.m14,
+                                                  matrix.m21 + matrix.m24,
+                                                  matrix.m31 + matrix.m34,
+                                                  matrix.m41 + matrix.m44);
+
+    setCoefficients(&camera->frustum[PLANE_LEFT], -matrix.m11 + matrix.m14,
+                                                   -matrix.m21 + matrix.m24,
+                                                   -matrix.m31 + matrix.m34,
+                                                   -matrix.m41 + matrix.m44);
+    /*{
+        char temp[256];
+        sprintf(temp, "%f %f %f %f\n%f %f %f %f\n%f %f %f %f\n%f %f %f %f\n",
+            matrix.m11, matrix.m12, matrix.m13, matrix.m14,
+            matrix.m21, matrix.m22, matrix.m23, matrix.m24,
+            matrix.m31, matrix.m32, matrix.m33, matrix.m34,
+            matrix.m41, matrix.m42, matrix.m43, matrix.m44);
+        DEBUG_MSG(temp);
+    }*/
+    /*{
+        char temp[256];
+        sprintf(temp, "[%f %f %f ] / %f\n[%f %f %f ] / %f\n[%f %f %f ] / %f\n[%f %f %f ] / %f\n[%f %f %f ] / %f\n[%f %f %f ] / %f\n",
+            camera->frustum[PLANE_NEAR].normal.x, camera->frustum[PLANE_NEAR].normal.y, camera->frustum[PLANE_NEAR].normal.z, camera->frustum[PLANE_NEAR].d,
+            camera->frustum[PLANE_FAR].normal.x, camera->frustum[PLANE_FAR].normal.y, camera->frustum[PLANE_FAR].normal.z, camera->frustum[PLANE_FAR].d,
+            camera->frustum[PLANE_BOTTOM].normal.x, camera->frustum[PLANE_BOTTOM].normal.y, camera->frustum[PLANE_BOTTOM].normal.z, camera->frustum[PLANE_BOTTOM].d,
+            camera->frustum[PLANE_TOP].normal.x, camera->frustum[PLANE_TOP].normal.y, camera->frustum[PLANE_TOP].normal.z, camera->frustum[PLANE_TOP].d,
+            camera->frustum[PLANE_LEFT].normal.x, camera->frustum[PLANE_LEFT].normal.y, camera->frustum[PLANE_LEFT].normal.z, camera->frustum[PLANE_LEFT].d,
+            camera->frustum[PLANE_RIGHT].normal.x, camera->frustum[PLANE_RIGHT].normal.y, camera->frustum[PLANE_RIGHT].normal.z, camera->frustum[PLANE_RIGHT].d);
+        DEBUG_MSG(temp);
+    }*/
+}
+
+void setCoefficients(Plane *pl, float a, float b, float c, float d)
+{
+    float l = max(0.0001f, magnitudeVector3(createVector3(a, b, c)));
+
+    pl->normal = createVector3(a / l, b / l, c / l);
+    pl->d = d / l;
+}
+
+int pointInCameraFrustum(Camera *camera, Vector3 vec)
+{
+    int i;
+    float dist;
+
+    for (i = 0; i < 6; i ++)
+    {
+        dist = dotProductVector3(camera->frustum[i].normal, vec) + camera->frustum[i].d;
+
+        if (dist < 0.0f)
+        {
+            // char temp[256];
+            // sprintf(temp, "%i, %f", i, dist);
+            // DEBUG_MSG(temp);
+            return 0;
+        }
+    }
+
+    return 1;
+}
 
 Screen createScreen(short width, short height)
 {
@@ -354,10 +453,10 @@ void renderMesh(Screen *screen, Camera *camera, Mesh *mesh)
     Point2D vertices[3];
     Matrix4x4 viewMatrix = createLookAtMatrix(camera->position, camera->target, createVector3(0.0f, 1.0f, 0.0f));
     Matrix4x4 projectionMatrix =
-        createPerspectiveMatrix(PI/3.0f, screen->width / (float)screen->height, 0.01f, 1000.0f);
+        createPerspectiveMatrix(PI/3.0f, screen->width / (float)screen->height, 0.1f, 100.0f);
 
     Matrix4x4 worldMatrix, tempMatrix, transformMatrix;
-    Vector3 invertedCamera;
+    Vector3 invertedCamera, projectedVertex;
 
     // perform rotation one by one for each axis
     // https://gamedev.stackexchange.com/questions/67199/how-to-rotate-an-object-around-world-aligned-axes/67269#67269
@@ -374,6 +473,8 @@ void renderMesh(Screen *screen, Camera *camera, Mesh *mesh)
     transformMatrix = multiplyMatrices(tempMatrix, projectionMatrix);
 
     invertedCamera = transformVector3ByMatrix(camera->position, Invert(worldMatrix));
+
+    setCameraFrustum(camera, transformMatrix);
 
     // reset the array of projections
     for (i = 0; i < mesh->vertexCount; i++)
@@ -399,13 +500,22 @@ void renderMesh(Screen *screen, Camera *camera, Mesh *mesh)
         // instead of the minimum required     10140
         for (j = 0; j < 3; j ++)
         {
-            if (mesh->vertexProjections[mesh->faces[i].indices[j]].x <= 0)
-            {
-                vertices[j] = project(screen->width, screen->height, mesh->vertices[mesh->faces[i].indices[j]], transformMatrix);
+            // if (mesh->vertexProjections[mesh->faces[i].indices[j]].x <= 0)
+            // {
+                vertices[j] = project(screen->width, screen->height, mesh->vertices[mesh->faces[i].indices[j]], transformMatrix, &projectedVertex);
                 mesh->vertexProjections[mesh->faces[i].indices[j]] = vertices[j];
-            }
-            else
-                vertices[j] = mesh->vertexProjections[mesh->faces[i].indices[j]];
+
+                //if (sign(projectedVertex.y) != sign(mesh->vertices[mesh->faces[i].indices[j]].y))
+                    /*if (projectedVertex.x < -0.5 || projectedVertex.x > 0.5 ||
+                        projectedVertex.y < -0.5 || projectedVertex.y > 0.5)*/
+                //if (projectedVertex.z < 0.01f)
+                    if (!pointInCameraFrustum(camera, projectedVertex)/* || projectedVertex.x < -0.5 || projectedVertex.x > 0.5 || projectedVertex.y < -0.5 || projectedVertex.y > 0.5*/)
+                {
+                    goto SKIP;
+                }
+            // }
+            // else
+                // vertices[j] = mesh->vertexProjections[mesh->faces[i].indices[j]];
         }
 
         {
@@ -444,14 +554,22 @@ void renderMesh(Screen *screen, Camera *camera, Mesh *mesh)
             drawPointOnScreen(screen, vertices[2]);
         }
 
-        if (i == inspectFace)
+        setpen(0, 255 * shading, 0, 0, 2);
+        moveto(vertices[0].x, vertices[0].y);
+        lineto(vertices[1].x, vertices[1].y);
+        lineto(vertices[2].x, vertices[2].y);
+        lineto(vertices[0].x, vertices[0].y);
+
+        /*if (i == inspectFace)
         {
             setpen(0, 255, 255, 0, 3);
             moveto(vertices[0].x, vertices[0].y);
             lineto(vertices[1].x, vertices[1].y);
             lineto(vertices[2].x, vertices[2].y);
             lineto(vertices[0].x, vertices[0].y);
-        }
+        }*/
+
+        SKIP:
     }
 }
 
@@ -517,9 +635,9 @@ void fillTriangle(Triangle triangle, unsigned char rr, unsigned char gg, unsigne
     b2 = b * b;
     c2 = c * c;
 
-    ang1 = acos((a2 + c2 - b2)/(float)(2*a*c));
-    ang2 = acos((a2 + b2 - c2)/(float)(2*a*b));
-    ang3 = acos((b2 + c2 - a2)/(float)(2*b*c));
+    ang1 = acos((a2 + c2 - b2) / max(0.0001f, (float)(2*a*c)));
+    ang2 = acos((a2 + b2 - c2) / max(0.0001f, (float)(2*a*b)));
+    ang3 = acos((b2 + c2 - a2) / max(0.0001f, (float)(2*b*c)));
 
     ang = degtorad(direction(tri2.p2.x, tri2.p2.y, tri2.p3.x, tri2.p3.y));
     h = distance(tri2.p1.x, tri2.p1.y, tri2.p2.x, tri2.p2.y);
@@ -532,24 +650,27 @@ void fillTriangle(Triangle triangle, unsigned char rr, unsigned char gg, unsigne
         ?distance(tri2.p2.x + x, tri2.p2.y - y, tri2.p3.x, tri2.p3.y)/46.0
         :distance(tri2.p2.x + x, tri2.p2.y - y, tri2.p1.x, tri2.p1.y)/46.0;
 
-    SET_TRIANGLE((radtodeg(ang3) / 2.0), (direction(tri2.p2.x + x, tri2.p2.y - y,
+    SET_TRIANGLE((radtodeg(ang3) / 2), (direction(tri2.p2.x + x, tri2.p2.y - y,
                                                    tri2.p3.x, tri2.p3.y)/2.0f),
                                                    rr, gg, bb);
 
     SendActivationEvent("tri.0");
-    draw_from("tri", tri2.p2.x + x, tri2.p2.y - y,size);
+    draw_from("tri", tri2.p2.x + x, tri2.p2.y - y, size);
 
     size = ((ang1 - (PI / 2.0f - ang3)) <= PI / 4.0f)
         ?distance(tri2.p2.x + x, tri2.p2.y - y, tri2.p1.x, tri2.p1.y)/46.0
         :distance(tri2.p2.x + x, tri2.p2.y - y, tri2.p2.x, tri2.p2.y)/46.0;
 
-     SET_TRIANGLE(((radtodeg(ang1) - (90.0 - radtodeg(ang3))) / 2.0),
+     SET_TRIANGLE(((radtodeg(ang1) - (90 - radtodeg(ang3))) / 2),
         (direction(tri2.p2.x + x, tri2.p2.y - y,
                         tri2.p1.x, tri2.p1.y)/2.0f),
                         rr, gg, bb);
     SendActivationEvent("tri.0");
     draw_from("tri", tri2.p2.x + x, tri2.p2.y - y, size);
 
+    setpen(rr, gg, bb, 0, 2);
+    moveto(tri2.p2.x + x, tri2.p2.y - y);
+    lineto(tri2.p1.x, tri2.p1.y);
     /*setpen(0, 255, 255, 0, 2);
     moveto(tri2.p2.x + x, tri2.p2.y - y);
     lineto(tri2.p1.x, tri2.p1.y);

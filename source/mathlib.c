@@ -47,7 +47,7 @@ const Matrix4x4 emptyMatrix;
 int diffSign(float val1, float val2, float err);
 int largestOf3(float val1, float val2, float val3);
 Point2D createPoint2D(float x, float y);
-Point2D project(short width, short height, Vector3 vertex, Matrix4x4 projectionMatrix);
+Point2D project(short width, short height, Vector3 vertex, Matrix4x4 projectionMatrix, Vector3 *out);
 Vector3 createVector3(float x, float y, float z);
 Vector3 scaleVector3(Vector3 vector, float scale);
 Vector3 normalizeVector3(Vector3 vector);
@@ -93,13 +93,14 @@ Point2D createPoint2D(float x, float y)
     return p;
 }
 
-Point2D project(short width, short height, Vector3 vertex, Matrix4x4 projectionMatrix)
+Point2D project(short width, short height, Vector3 vertex, Matrix4x4 projectionMatrix, Vector3 *out)
 {
     Point2D result;
     Vector3 transformed = transformVector3ByMatrix(vertex, projectionMatrix);
 
     result.x = transformed.x * width + width / 2.0f;
     result.y = -transformed.y * height + height / 2.0f;
+    *out = transformed;
 
     return result;
 }
@@ -132,7 +133,7 @@ Vector3 normalizeVector3(Vector3 vector)
 
     if (abs(magnitude) <= 0.0001f)
     {
-        DEBUG_MSG_FROM("Failed: Vector magnitude was 0.", "normalizeVector3");
+        // DEBUG_MSG_FROM("Failed: Vector magnitude was 0.", "normalizeVector3");
         return createVector3(0.0f, 0.0f, 0.0f);
     }
 
@@ -189,8 +190,7 @@ Vector3 transformVector3ByMatrix(Vector3 vector, Matrix4x4 matrix)
 
     if (abs(divisor) < 0.0001f)
     {
-        DEBUG_MSG_FROM("Failed: Can't divide by 0.",
-                       "transformVector3ByMatrix");
+        // DEBUG_MSG_FROM("Failed: Can't divide by 0.", "transformVector3ByMatrix");
         return vector;
     }
 
