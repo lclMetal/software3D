@@ -3,6 +3,12 @@
 Software3D (a temporary name) is a 3D library for [Game Editor](http://game-editor.com/Main_Page).  
 Opening the project (.ged file) requires Game Editor [version 1.4.0](http://game-editor.com/Download) or newer.
 
+**Notice: Opening the project takes some time**  
+The project contains 45 images of resolution 3360 x 4200. Loading these images causes Game Editor to
+take a while opening the project. The program may become unresponsive and it may even look like it has frozen 
+(Windows might even tell you so), **_but it will eventually get the job done_**. After that initial
+loading phase Game Editor runs smoothly.
+
 ### Controls
 
 - **F1**: toggle axis visualizers, default = on
