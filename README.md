@@ -32,5 +32,5 @@ loading phase Game Editor runs smoothly.
     - free allocated memory (on key down)
     - exit (on key up)
 
-### YouTube preview (outdated)
-[![Game Editor 3D YouTube video thumbnail](https://img.youtube.com/vi/8hE8w9jJIQw/maxresdefault.jpg)](https://www.youtube.com/watch?v=8hE8w9jJIQw)
+### YouTube preview
+[![Game Editor 3D YouTube video thumbnail](https://img.youtube.com/vi/im8DZ2Gioeo/hqdefault.jpg)](https://www.youtube.com/watch?v=im8DZ2Gioeo)
