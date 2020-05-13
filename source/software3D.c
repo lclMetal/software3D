@@ -78,9 +78,26 @@ const unsigned int BACKFACE_CULLING   = (1 << 6);
 unsigned int flags = ENABLE_AXES | BACKFACE_CULLING;
 
 Mesh *cube;
+Mesh *cubbe;
 Mesh *coords;
 Camera camera;
 Screen screen;
+
+typedef struct TriangleObjStruct
+{
+    Mesh *mesh;
+    int faceNum;
+    float shading;
+    float faceDist;
+}TriangleObj;
+
+typedef struct TrianglePoolStruct
+{
+    int triCount;
+    TriangleObj *triangles;
+}TrianglePool;
+
+TrianglePool trianglePool;
 
 short mode = 3;
 int inspectFace = 0;
@@ -102,6 +119,12 @@ void setMeshOrientation(Mesh *mesh, Vector3 orientation);
 void renderMesh(Screen *screen, Camera *camera, Mesh *mesh);
 void fillTriangle(Triangle triangle, unsigned char r, unsigned char g, unsigned char b);
 void destroyMesh(Mesh *mesh);
+
+void createPool(TrianglePool *this, int maxTriCount);
+void addTriangleToPool(TrianglePool *tp, Mesh *mesh, int faceNum, float shading, float faceDist);
+void resetTrianglePool(TrianglePool *tp);
+void drawTrianglesFromPool(TrianglePool *tp);
+void freeTrianglePool(TrianglePool *tp);
 
 void setCameraFrustum(Camera *camera, Matrix4x4 matrix)
 {
@@ -500,8 +523,8 @@ void renderMesh(Screen *screen, Camera *camera, Mesh *mesh)
         // instead of the minimum required     10140
         for (j = 0; j < 3; j ++)
         {
-            // if (mesh->vertexProjections[mesh->faces[i].indices[j]].x <= 0)
-            // {
+            if (mesh->vertexProjections[mesh->faces[i].indices[j]].x <= 0)
+            {
                 vertices[j] = project(screen->width, screen->height, mesh->vertices[mesh->faces[i].indices[j]], transformMatrix, &projectedVertex);
                 mesh->vertexProjections[mesh->faces[i].indices[j]] = vertices[j];
 
@@ -513,9 +536,9 @@ void renderMesh(Screen *screen, Camera *camera, Mesh *mesh)
                 {
                     goto SKIP;
                 }
-            // }
-            // else
-                // vertices[j] = mesh->vertexProjections[mesh->faces[i].indices[j]];
+            }
+            else
+                vertices[j] = mesh->vertexProjections[mesh->faces[i].indices[j]];
         }
 
         {
@@ -527,9 +550,12 @@ void renderMesh(Screen *screen, Camera *camera, Mesh *mesh)
             // vec2 = transformVector3ByMatrix(createVector3(10, 10, 10), Invert(worldMatrix));
 
             shading = max(0.0f, dotProductVector3(vec1, vec2) / (magnitudeVector3(vec1) * magnitudeVector3(vec2)));
-        }
 
-        tris.p1 = mesh->vertexProjections[mesh->faces[i].indices[0]];
+
+        addTriangleToPool(&trianglePool, mesh, i, shading, dotProductVector3(
+            transformVector3ByMatrix(mesh->vertices[mesh->faces[i].indices[0]], worldMatrix), camera->position));
+        }
+        /*tris.p1 = mesh->vertexProjections[mesh->faces[i].indices[0]];
         tris.p2 = mesh->vertexProjections[mesh->faces[i].indices[1]];
         tris.p3 = mesh->vertexProjections[mesh->faces[i].indices[2]];
 
@@ -558,7 +584,7 @@ void renderMesh(Screen *screen, Camera *camera, Mesh *mesh)
         moveto(vertices[0].x, vertices[0].y);
         lineto(vertices[1].x, vertices[1].y);
         lineto(vertices[2].x, vertices[2].y);
-        lineto(vertices[0].x, vertices[0].y);
+        lineto(vertices[0].x, vertices[0].y);*/
 
         /*if (i == inspectFace)
         {
@@ -688,4 +714,92 @@ void destroyMesh(Mesh *mesh)
     free(mesh->vertexProjections);
     free(mesh->faces);
     free(mesh);
+}
+
+
+
+void createPool(TrianglePool *this, int maxTriCount)
+{
+    if (this)
+    {
+        this->triangles = malloc(sizeof (TriangleObj) * maxTriCount);
+
+        if (!this->triangles)
+        {
+            DEBUG_MSG("Couldn't allocate triangle pool.");
+        }
+    }
+}
+
+void addTriangleToPool(TrianglePool *tp, Mesh *mesh, int faceNum, float shading, float faceDist)
+{
+    if (tp && tp->triangles)
+    {
+        TriangleObj *temp = &tp->triangles[tp->triCount];
+        (*temp).mesh = mesh;
+        (*temp).faceNum = faceNum;
+        (*temp).shading = shading;
+        (*temp).faceDist = faceDist;
+        tp->triCount++;
+    }
+}
+
+void resetTrianglePool(TrianglePool *tp)
+{
+    if (tp)
+    {
+        tp->triCount = 0;
+    }
+}
+
+void drawTrianglesFromPool(TrianglePool *tp)
+{
+    int i;
+    Triangle tri;
+    TriangleObj to;
+
+    if (tp && tp->triangles)
+    {
+        for (i = 0; i < tp->triCount; i++)
+        {
+            to = tp->triangles[i];
+            tri.p1 = to.mesh->vertexProjections[to.mesh->faces[to.faceNum].indices[0]];
+            tri.p2 = to.mesh->vertexProjections[to.mesh->faces[to.faceNum].indices[1]];
+            tri.p3 = to.mesh->vertexProjections[to.mesh->faces[to.faceNum].indices[2]];
+
+            fillTriangle(tri, 0, 255 * to.shading, 0);
+        }
+    }
+
+    resetTrianglePool(tp);
+}
+
+void sortTrianglePoolInsertion(TrianglePool *tp)
+{
+    int i = 1;
+    int j;
+    TriangleObj temp;
+
+    while (i < tp->triCount)
+    {
+        j = i;
+
+        while (j > 0 && tp->triangles[j - 1].faceDist > tp->triangles[j].faceDist)
+        {
+            temp = tp->triangles[j - 1];
+            tp->triangles[j - 1] = tp->triangles[j];
+            tp->triangles[j] = temp;
+            j--;
+        }
+
+        i++;
+    }
+}
+
+void freeTrianglePool(TrianglePool *tp)
+{
+    if (tp && tp->triangles)
+    {
+        free(tp->triangles);
+    }
 }
