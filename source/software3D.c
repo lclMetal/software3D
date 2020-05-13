@@ -27,6 +27,7 @@ typedef struct FaceStruct
 {
     short indices[3];
     short normal;
+    int poolIndex;
 }Face;
 
 typedef struct MeshStruct
@@ -86,7 +87,8 @@ Screen screen;
 typedef struct TriangleObjStruct
 {
     Mesh *mesh;
-    int faceNum;
+    Face *face;
+    short drawState;
     float shading;
     float faceDist;
 }TriangleObj;
@@ -94,6 +96,7 @@ typedef struct TriangleObjStruct
 typedef struct TrianglePoolStruct
 {
     int triCount;
+    int maxTriCount;
     TriangleObj *triangles;
 }TrianglePool;
 
@@ -121,9 +124,12 @@ void fillTriangle(Triangle triangle, unsigned char r, unsigned char g, unsigned 
 void destroyMesh(Mesh *mesh);
 
 void createPool(TrianglePool *this, int maxTriCount);
-void addTriangleToPool(TrianglePool *tp, Mesh *mesh, int faceNum, float shading, float faceDist);
+void addMeshFacesToPool(TrianglePool *tp, Mesh *mesh);
+void addTriangleToPool(TrianglePool *tp, Mesh *mesh, Face *face);
+void setTriangleInPool(TrianglePool *tp, int index, short drawState, float shading, float faceDist);
 void resetTrianglePool(TrianglePool *tp);
 void drawTrianglesFromPool(TrianglePool *tp);
+void sortTrianglePoolInsertion(TrianglePool *tp);
 void freeTrianglePool(TrianglePool *tp);
 
 void setCameraFrustum(Camera *camera, Matrix4x4 matrix)
@@ -509,7 +515,13 @@ void renderMesh(Screen *screen, Camera *camera, Mesh *mesh)
     {
         if (flags & BACKFACE_CULLING &&
                 dotProductVector3(
-                    subtractVector3(mesh->vertices[mesh->faces[i].indices[0]], invertedCamera), mesh->normals[mesh->faces[i].normal]) >= 0)continue;
+                    subtractVector3(mesh->vertices[mesh->faces[i].indices[0]], invertedCamera), mesh->normals[mesh->faces[i].normal]) >= 0)
+        {
+            /*setTriangleInPool(&trianglePool, mesh->faces[i].poolIndex, 0, trianglePool.triangles[mesh->faces[i].poolIndex].shading,
+                trianglePool.triangles[mesh->faces[i].poolIndex].faceDist);*/
+            trianglePool.triangles[mesh->faces[i].poolIndex].drawState = 0;
+            continue;
+        }
 
         // pre-optimized version called project() once for every vertex
         // of every face, amounting to total    2904 times
@@ -532,8 +544,9 @@ void renderMesh(Screen *screen, Camera *camera, Mesh *mesh)
                     /*if (projectedVertex.x < -0.5 || projectedVertex.x > 0.5 ||
                         projectedVertex.y < -0.5 || projectedVertex.y > 0.5)*/
                 //if (projectedVertex.z < 0.01f)
-                    if (!pointInCameraFrustum(camera, projectedVertex)/* || projectedVertex.x < -0.5 || projectedVertex.x > 0.5 || projectedVertex.y < -0.5 || projectedVertex.y > 0.5*/)
+                if (!pointInCameraFrustum(camera, projectedVertex)/* || projectedVertex.x < -0.5 || projectedVertex.x > 0.5 || projectedVertex.y < -0.5 || projectedVertex.y > 0.5*/)
                 {
+                    trianglePool.triangles[mesh->faces[i].poolIndex].drawState = 0;
                     goto SKIP;
                 }
             }
@@ -551,9 +564,8 @@ void renderMesh(Screen *screen, Camera *camera, Mesh *mesh)
 
             shading = max(0.0f, dotProductVector3(vec1, vec2) / (magnitudeVector3(vec1) * magnitudeVector3(vec2)));
 
-
-        addTriangleToPool(&trianglePool, mesh, i, shading, dotProductVector3(
-            transformVector3ByMatrix(mesh->vertices[mesh->faces[i].indices[0]], worldMatrix), camera->position));
+            setTriangleInPool(&trianglePool, mesh->faces[i].poolIndex, 1, shading, dotProductVector3(
+                transformVector3ByMatrix(mesh->vertices[mesh->faces[i].indices[0]], worldMatrix), camera->position));
         }
         /*tris.p1 = mesh->vertexProjections[mesh->faces[i].indices[0]];
         tris.p2 = mesh->vertexProjections[mesh->faces[i].indices[1]];
@@ -728,19 +740,47 @@ void createPool(TrianglePool *this, int maxTriCount)
         {
             DEBUG_MSG("Couldn't allocate triangle pool.");
         }
+
+        this->triCount = 0;
+        this->maxTriCount = maxTriCount;
     }
 }
 
-void addTriangleToPool(TrianglePool *tp, Mesh *mesh, int faceNum, float shading, float faceDist)
+void addMeshFacesToPool(TrianglePool *tp, Mesh *mesh)
+{
+    if (tp && tp->triangles && tp->triCount < tp->maxTriCount)
+    {
+        int i;
+
+        for (i = 0; i < mesh->faceCount; i++)
+        {
+            addTriangleToPool(tp, mesh, &mesh->faces[i]);
+        }
+    }
+}
+
+void addTriangleToPool(TrianglePool *tp, Mesh *mesh, Face *face)
 {
     if (tp && tp->triangles)
     {
         TriangleObj *temp = &tp->triangles[tp->triCount];
-        (*temp).mesh = mesh;
-        (*temp).faceNum = faceNum;
-        (*temp).shading = shading;
-        (*temp).faceDist = faceDist;
-        tp->triCount++;
+        temp->mesh = mesh;
+        temp->drawState = 1;
+        temp->face = face;
+        temp->shading = 0;
+        temp->faceDist = 0;
+        temp->face->poolIndex = tp->triCount++;
+    }
+}
+
+void setTriangleInPool(TrianglePool *tp, int index, short drawState, float shading, float faceDist)
+{
+    if (tp && tp->triangles && index < tp->triCount && index >= 0)
+    {
+        TriangleObj *temp = &tp->triangles[index];
+        temp->drawState = drawState;
+        temp->shading = shading;
+        temp->faceDist = faceDist;
     }
 }
 
@@ -759,19 +799,23 @@ void drawTrianglesFromPool(TrianglePool *tp)
     TriangleObj to;
 
     if (tp && tp->triangles)
-    {
+    {        
         for (i = 0; i < tp->triCount; i++)
         {
             to = tp->triangles[i];
-            tri.p1 = to.mesh->vertexProjections[to.mesh->faces[to.faceNum].indices[0]];
-            tri.p2 = to.mesh->vertexProjections[to.mesh->faces[to.faceNum].indices[1]];
-            tri.p3 = to.mesh->vertexProjections[to.mesh->faces[to.faceNum].indices[2]];
 
-            fillTriangle(tri, 0, 255 * to.shading, 0);
+            if (to.drawState)
+            {
+                tri.p1 = to.mesh->vertexProjections[to.face->indices[0]];
+                tri.p2 = to.mesh->vertexProjections[to.face->indices[1]];
+                tri.p3 = to.mesh->vertexProjections[to.face->indices[2]];
+
+                fillTriangle(tri, 0, 255 * to.shading, 0);
+            }
         }
     }
 
-    resetTrianglePool(tp);
+    // resetTrianglePool(tp);
 }
 
 void sortTrianglePoolInsertion(TrianglePool *tp)
@@ -788,7 +832,9 @@ void sortTrianglePoolInsertion(TrianglePool *tp)
         {
             temp = tp->triangles[j - 1];
             tp->triangles[j - 1] = tp->triangles[j];
+            tp->triangles[j - 1].face->poolIndex = j - 1;
             tp->triangles[j] = temp;
+            tp->triangles[j].face->poolIndex = j;
             j--;
         }
 
