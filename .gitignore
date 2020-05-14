@@ -9,3 +9,6 @@
 
 # Executables
 *.exe
+
+# Local files
+/local

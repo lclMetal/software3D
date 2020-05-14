@@ -1,73 +1,10 @@
+
+#include "source/software3d.h"
+
 // Written according to the following tutorial:
 // https://www.davrous.com/2013/06/13/
 // tutorial-series-learning-how-to-write-a-3d-soft-engine-from-scratch-in-c-
 // typescript-or-javascript/
-
-#define PLANE_NEAR   0
-#define PLANE_FAR    1
-#define PLANE_BOTTOM 2
-#define PLANE_TOP    3
-#define PLANE_LEFT   4
-#define PLANE_RIGHT  5
-
-typedef struct PlaneStruct
-{
-    Vector3 normal;
-    float d;
-}Plane;
-
-typedef struct CameraStruct
-{
-    Vector3 position;
-    Vector3 target;
-    Plane frustum[6];
-}Camera;
-
-typedef struct FaceStruct
-{
-    short indices[3];
-    short normal;
-    int poolIndex;
-}Face;
-
-typedef struct MeshStruct
-{
-    char name[256];
-
-    int vertexCount;
-    Vector3* vertices;
-    Point2D* vertexProjections;
-
-    int faceCount;
-    Face* faces;
-
-    int normalCount;
-    Vector3* normals;
-
-    Vector3 position;
-    Vector3 rotation;
-    Matrix4x4 orientation;
-}Mesh;
-
-typedef struct MeshFileStruct
-{
-    int vertexCount;
-    int faceCount;
-    int normalCount;
-}MeshFile;
-
-typedef struct TriangleStruct
-{
-    Point2D p1;
-    Point2D p2;
-    Point2D p3;
-}Triangle;
-
-typedef struct ScreenStruct
-{
-    short width;
-    short height;
-}Screen;
 
 const unsigned int ENABLE_MOUSE       = (1 << 0);
 const unsigned int ROTATE_X           = (1 << 1);
@@ -84,53 +21,10 @@ Mesh *coords;
 Camera camera;
 Screen screen;
 
-typedef struct TriangleObjStruct
-{
-    Mesh *mesh;
-    Face *face;
-    short drawState;
-    float shading;
-    float faceDist;
-}TriangleObj;
-
-typedef struct TrianglePoolStruct
-{
-    int triCount;
-    int maxTriCount;
-    TriangleObj *triangles;
-}TrianglePool;
-
 TrianglePool trianglePool;
 
 short mode = 3;
 int inspectFace = 0;
-
-void setCameraFrustum(Camera *camera, Matrix4x4 matrix);
-void setCoefficients(Plane *pl, float a, float b, float c, float d);
-int pointInCameraFrustum(Camera *camera, Vector3 vec);
-Screen createScreen(short width, short height);
-Face createFace(short v1, short v2, short v3);
-Face createFaceWithNormal(short v1, short v2, short v3, short normal);
-void drawPointOnScreen(Screen *ptr, Point2D point);
-Mesh *newMesh(char meshName[256], int vertexCount, int faceCount, int normalCount);
-MeshFile getMeshFileInfo(char fileName[256]);
-Mesh *readMeshFromFile(char fileName[256]);
-int setMeshVertex(Mesh *mesh, int vertexNum, Vector3 vertex);
-int setMeshFace(Mesh *mesh, int faceNum, Face face);
-int setMeshNormal(Mesh *mesh, int normalNum, Vector3 normal);
-void setMeshOrientation(Mesh *mesh, Vector3 orientation);
-void renderMesh(Screen *screen, Camera *camera, Mesh *mesh);
-void fillTriangle(Triangle triangle, unsigned char r, unsigned char g, unsigned char b);
-void destroyMesh(Mesh *mesh);
-
-void createPool(TrianglePool *this, int maxTriCount);
-void addMeshFacesToPool(TrianglePool *tp, Mesh *mesh);
-void addTriangleToPool(TrianglePool *tp, Mesh *mesh, Face *face);
-void setTriangleInPool(TrianglePool *tp, int index, short drawState, float shading, float faceDist);
-void resetTrianglePool(TrianglePool *tp);
-void drawTrianglesFromPool(TrianglePool *tp);
-void sortTrianglePoolInsertion(TrianglePool *tp);
-void freeTrianglePool(TrianglePool *tp);
 
 void setCameraFrustum(Camera *camera, Matrix4x4 matrix)
 {
@@ -515,7 +409,7 @@ void renderMesh(Screen *screen, Camera *camera, Mesh *mesh)
     {
         if (flags & BACKFACE_CULLING &&
                 dotProductVector3(
-                    subtractVector3(mesh->vertices[mesh->faces[i].indices[0]], invertedCamera), mesh->normals[mesh->faces[i].normal]) >= 0)
+                    subtractVector3(mesh->vertices[mesh->faces[i].indices[0]], invertedCamera), mesh->normals[mesh->faces[i].normal]) >= 0.0f)
         {
             /*setTriangleInPool(&trianglePool, mesh->faces[i].poolIndex, 0, trianglePool.triangles[mesh->faces[i].poolIndex].shading,
                 trianglePool.triangles[mesh->faces[i].poolIndex].faceDist);*/
@@ -535,7 +429,7 @@ void renderMesh(Screen *screen, Camera *camera, Mesh *mesh)
         // instead of the minimum required     10140
         for (j = 0; j < 3; j ++)
         {
-            if (mesh->vertexProjections[mesh->faces[i].indices[j]].x <= 0)
+            if (mesh->vertexProjections[mesh->faces[i].indices[j]].x <= 0.0f)
             {
                 vertices[j] = project(screen->width, screen->height, mesh->vertices[mesh->faces[i].indices[j]], transformMatrix, &projectedVertex);
                 mesh->vertexProjections[mesh->faces[i].indices[j]] = vertices[j];
@@ -556,7 +450,7 @@ void renderMesh(Screen *screen, Camera *camera, Mesh *mesh)
 
         {
             Vector3 vec1;
-            Vector3 vec2;
+            Vector3 vec2 = createVector3(0.0f, 0.0f, 1.0f);
 
             vec1 = mesh->normals[mesh->faces[i].normal];
             vec2 = transformVector3ByMatrix(createVector3(10*sin(frame/80.0), 10, 10*cos(frame/80.0)), Invert(worldMatrix));
@@ -623,7 +517,7 @@ void fillTriangle(Triangle triangle, unsigned char rr, unsigned char gg, unsigne
                         createVector3(triangle.p1.x, triangle.p1.y, 0)),
         subtractVector3(createVector3(triangle.p3.x, triangle.p3.y, 0),
                         createVector3(triangle.p1.x, triangle.p1.y, 0)));
-    if (vec.z > 0)
+    if (vec.z > 0.0f)
     {
         Triangle temp;
         temp = triangle;
@@ -639,9 +533,9 @@ void fillTriangle(Triangle triangle, unsigned char rr, unsigned char gg, unsigne
     b2 = b * b;
     c2 = c * c;
 
-    ang1 = acos((a2 + c2 - b2) / max(0.0001f, (float)(2*a*c))); // illegal division by 0
-    ang2 = acos((a2 + b2 - c2) / max(0.0001f, (float)(2*a*b)));
-    ang3 = acos((b2 + c2 - a2) / max(0.0001f, (float)(2*b*c)));
+    ang1 = acos((a2 + c2 - b2) / max(0.0001f, (float)(2.0f*a*c))); // illegal division by 0
+    ang2 = acos((a2 + b2 - c2) / max(0.0001f, (float)(2.0f*a*b)));
+    ang3 = acos((b2 + c2 - a2) / max(0.0001f, (float)(2.0f*b*c)));
 
     SET_TRIANGLE(0, 0, rr, gg, bb);
     SendActivationEvent("tri.0");
@@ -673,9 +567,9 @@ void fillTriangle(Triangle triangle, unsigned char rr, unsigned char gg, unsigne
     b2 = b * b;
     c2 = c * c;
 
-    ang1 = acos((a2 + c2 - b2) / max(0.0001f, (float)(2*a*c)));
-    ang2 = acos((a2 + b2 - c2) / max(0.0001f, (float)(2*a*b)));
-    ang3 = acos((b2 + c2 - a2) / max(0.0001f, (float)(2*b*c)));
+    ang1 = acos((a2 + c2 - b2) / max(0.0001f, (float)(2.0f*a*c)));
+    ang2 = acos((a2 + b2 - c2) / max(0.0001f, (float)(2.0f*a*b)));
+    ang3 = acos((b2 + c2 - a2) / max(0.0001f, (float)(2.0f*b*c)));
 
     ang = degtorad(direction(tri2.p2.x, tri2.p2.y, tri2.p3.x, tri2.p3.y));
     h = distance(tri2.p1.x, tri2.p1.y, tri2.p2.x, tri2.p2.y);
@@ -685,10 +579,10 @@ void fillTriangle(Triangle triangle, unsigned char rr, unsigned char gg, unsigne
     y = sin(ang) * sideLength;
 
     size = (ang3 <= PI / 4.0f)
-        ?distance(tri2.p2.x + x, tri2.p2.y - y, tri2.p3.x, tri2.p3.y)/46.0
-        :distance(tri2.p2.x + x, tri2.p2.y - y, tri2.p1.x, tri2.p1.y)/46.0;
+        ?distance(tri2.p2.x + x, tri2.p2.y - y, tri2.p3.x, tri2.p3.y)/46.0f
+        :distance(tri2.p2.x + x, tri2.p2.y - y, tri2.p1.x, tri2.p1.y)/46.0f;
 
-    SET_TRIANGLE((radtodeg(ang3) / 2), (direction(tri2.p2.x + x, tri2.p2.y - y,
+    SET_TRIANGLE((radtodeg(ang3) / 2.0f), (direction(tri2.p2.x + x, tri2.p2.y - y,
                                                    tri2.p3.x, tri2.p3.y)/2.0f),
                                                    rr, gg, bb);
 
@@ -696,20 +590,20 @@ void fillTriangle(Triangle triangle, unsigned char rr, unsigned char gg, unsigne
     draw_from("tri", tri2.p2.x + x, tri2.p2.y - y, size);
 
     size = ((ang1 - (PI / 2.0f - ang3)) <= PI / 4.0f)
-        ?distance(tri2.p2.x + x, tri2.p2.y - y, tri2.p1.x, tri2.p1.y)/46.0
-        :distance(tri2.p2.x + x, tri2.p2.y - y, tri2.p2.x, tri2.p2.y)/46.0;
+        ?distance(tri2.p2.x + x, tri2.p2.y - y, tri2.p1.x, tri2.p1.y)/46.0f
+        :distance(tri2.p2.x + x, tri2.p2.y - y, tri2.p2.x, tri2.p2.y)/46.0f;
 
-     SET_TRIANGLE(((radtodeg(ang1) - (90 - radtodeg(ang3))) / 2),
+     SET_TRIANGLE(((radtodeg(ang1) - (90.0f - radtodeg(ang3))) / 2.0f),
         (direction(tri2.p2.x + x, tri2.p2.y - y,
                         tri2.p1.x, tri2.p1.y)/2.0f),
                         rr, gg, bb);
     SendActivationEvent("tri.0");
     draw_from("tri", tri2.p2.x + x, tri2.p2.y - y, size);
 
-    setpen(rr, gg, bb, 0, 2);
+    /*setpen(rr, gg, bb, 0, 2);
     moveto(tri2.p2.x + x, tri2.p2.y - y);
-    lineto(tri2.p1.x, tri2.p1.y);
-    /*setpen(0, 255, 255, 0, 2);
+    lineto(tri2.p1.x, tri2.p1.y);*/
+    /*setpen(0, 255, 255, 0, 1);
     moveto(tri2.p2.x + x, tri2.p2.y - y);
     lineto(tri2.p1.x, tri2.p1.y);
     lineto(tri2.p2.x, tri2.p2.y);
@@ -767,8 +661,8 @@ void addTriangleToPool(TrianglePool *tp, Mesh *mesh, Face *face)
         temp->mesh = mesh;
         temp->drawState = 1;
         temp->face = face;
-        temp->shading = 0;
-        temp->faceDist = 0;
+        temp->shading = 0.0f;
+        temp->faceDist = 0.0f;
         temp->face->poolIndex = tp->triCount++;
     }
 }
@@ -799,7 +693,7 @@ void drawTrianglesFromPool(TrianglePool *tp)
     TriangleObj to;
 
     if (tp && tp->triangles)
-    {        
+    {
         for (i = 0; i < tp->triCount; i++)
         {
             to = tp->triangles[i];
