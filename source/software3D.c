@@ -31,7 +31,7 @@ typedef struct MeshStruct
 
     int vertexCount;
     Vector3* vertices;
-    Point2D* vertexProjections;
+    Vector3* vertexProjections;
 
     int faceCount;
     Face* faces;
@@ -53,9 +53,9 @@ typedef struct MeshFileStruct
 
 typedef struct TriangleStruct
 {
-    Point2D p1;
-    Point2D p2;
-    Point2D p3;
+    Vector3 p1;
+    Vector3 p2;
+    Vector3 p3;
 }Triangle;
 
 typedef struct ScreenStruct
@@ -479,7 +479,6 @@ void renderMesh(Screen *screen, Camera *camera, Mesh *mesh)
     int i, j;
     Triangle tris;
     float shading;
-    Point2D vertices[3];
     Matrix4x4 viewMatrix = createLookAtMatrix(camera->position, camera->target, createVector3(0.0f, 1.0f, 0.0f));
     Matrix4x4 projectionMatrix =
         createPerspectiveMatrix(PI/3.0f, screen->width / (float)screen->height, 0.1f, 100.0f);
@@ -508,7 +507,7 @@ void renderMesh(Screen *screen, Camera *camera, Mesh *mesh)
     // reset the array of projections
     for (i = 0; i < mesh->vertexCount; i++)
     {
-        mesh->vertexProjections[i].x = mesh->vertexProjections[i].y = 0.0f;
+        mesh->vertexProjections[i] = project(screen->width, screen->height, mesh->vertices[i], transformMatrix, &projectedVertex);
     }
 
     for (i = 0; i < mesh->faceCount; i ++)
@@ -533,26 +532,21 @@ void renderMesh(Screen *screen, Camera *camera, Mesh *mesh)
         // one call of project() amounts to       20 multiplications/divisions,
         // which means that every frame        58080 multiplications/divisions took place
         // instead of the minimum required     10140
-        for (j = 0; j < 3; j ++)
+        /*for (j = 0; j < 3; j ++)
         {
             if (mesh->vertexProjections[mesh->faces[i].indices[j]].x <= 0.0f)
-            {
-                vertices[j] = project(screen->width, screen->height, mesh->vertices[mesh->faces[i].indices[j]], transformMatrix, &projectedVertex);
-                mesh->vertexProjections[mesh->faces[i].indices[j]] = vertices[j];
-
+            {*/
                 //if (sign(projectedVertex.y) != sign(mesh->vertices[mesh->faces[i].indices[j]].y))
                     /*if (projectedVertex.x < -0.5 || projectedVertex.x > 0.5 ||
                         projectedVertex.y < -0.5 || projectedVertex.y > 0.5)*/
                 //if (projectedVertex.z < 0.01f)
-                if (!pointInCameraFrustum(camera, projectedVertex)/* || projectedVertex.x < -0.5 || projectedVertex.x > 0.5 || projectedVertex.y < -0.5 || projectedVertex.y > 0.5*/)
-                {
+                //if (!pointInCameraFrustum(camera, projectedVertex)/* || projectedVertex.x < -0.5 || projectedVertex.x > 0.5 || projectedVertex.y < -0.5 || projectedVertex.y > 0.5*/)
+                /*{
                     trianglePool.triangles[mesh->faces[i].poolIndex].drawState = 0;
                     goto SKIP;
                 }
             }
-            else
-                vertices[j] = mesh->vertexProjections[mesh->faces[i].indices[j]];
-        }
+        }*/
 
         {
             Vector3 vec1;
@@ -609,7 +603,7 @@ void renderMesh(Screen *screen, Camera *camera, Mesh *mesh)
             lineto(vertices[0].x, vertices[0].y);
         }*/
 
-        SKIP:
+        //SKIP:
     }
 }
 
@@ -696,12 +690,12 @@ void fillTriangle(Triangle triangle, float rr, float gg, float bb)
                                                    rr, gg, bb);
 
     // Draw around the triangle to fix holes left between triangles
-    setpen(rr, gg, bb, 0, 5);
+    /*setpen(rr, gg, bb, 0, 5);
     moveto(tri2.p2.x + x, tri2.p2.y - y);
     lineto(tri2.p1.x, tri2.p1.y);
     lineto(tri2.p2.x, tri2.p2.y);
     lineto(tri2.p3.x, tri2.p3.y);
-    lineto(tri2.p1.x, tri2.p1.y);
+    lineto(tri2.p1.x, tri2.p1.y);*/
 
     SendActivationEvent("tri.0");
     draw_from("tri", tri2.p2.x + x, tri2.p2.y - y, size);

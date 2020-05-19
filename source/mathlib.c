@@ -45,7 +45,7 @@ typedef struct Matrix4x4Struct
 int diffSign(float val1, float val2, float err);
 int largestOf3(float val1, float val2, float val3);
 Point2D createPoint2D(int x, int y);
-Point2D project(short width, short height, Vector3 vertex, Matrix4x4 projectionMatrix, Vector3 *out);
+Vector3 project(short width, short height, Vector3 vertex, Matrix4x4 projectionMatrix, Vector3 *out);
 Vector3 createVector3(float x, float y, float z);
 Vector3 scaleVector3(Vector3 vector, float scale);
 Vector3 normalizeVector3(Vector3 vector);
@@ -93,13 +93,14 @@ Point2D createPoint2D(int x, int y)
     return p;
 }
 
-Point2D project(short width, short height, Vector3 vertex, Matrix4x4 projectionMatrix, Vector3 *out)
+Vector3 project(short width, short height, Vector3 vertex, Matrix4x4 projectionMatrix, Vector3 *out)
 {
-    Point2D result;
+    Vector3 result;
     Vector3 transformed = transformVector3ByMatrix(vertex, projectionMatrix);
 
     result.x = transformed.x * width + width / 2.0f;
     result.y = -transformed.y * height + height / 2.0f;
+    result.z = transformed.z;
     *out = transformed;
 
     return result;
