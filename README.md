@@ -28,7 +28,7 @@ loading phase Game Editor runs smoothly.
 - **F8**: toggle backface culling, default = off
 - **WS/AD/QE**: move object (+-z, -+x, -+y)
 - **↑↓/←→/LCTRL, SPACE**: move camera (+-z, -+x, -+Y)
-- **§ (key above tab)**:
+- **PAUSE**:
     - free allocated memory (on key down)
     - exit (on key up)
 
