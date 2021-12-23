@@ -130,6 +130,7 @@ Screen screen;
 TrianglePool trianglePool;
 
 short mode = 3;
+short trianglePosAdjust;
 int inspectFace = 0;
 
 void setCameraFrustum(Camera *camera, Matrix4x4 matrix)
@@ -610,6 +611,7 @@ void renderMesh(Screen *screen, Camera *camera, Mesh *mesh)
 void fillTriangle(Triangle triangle, float rr, float gg, float bb)
 {
     float h, x, y, ang, size, sideLength;
+    float xAdjust = 0, yAdjust = 0, posAdjustAmount = 0, sizeAdjust;
     float a, b, c, a2, b2, c2, ang1, ang2, ang3;
     const float triangleSize = 150.0f;
 
@@ -680,6 +682,20 @@ void fillTriangle(Triangle triangle, float rr, float gg, float bb)
 
     x = cos(ang) * sideLength;
     y = sin(ang) * sideLength;
+    
+    posAdjustAmount = 2;
+    
+    if (trianglePosAdjust)
+    {
+        float adj = 225;
+        xAdjust = cos(degtorad(direction(tri2.p2.x + x, tri2.p2.y - y,
+                                                   tri2.p3.x, tri2.p3.y) + adj)) * posAdjustAmount;
+        yAdjust = sin(degtorad(direction(tri2.p2.x + x, tri2.p2.y - y,
+                                                   tri2.p3.x, tri2.p3.y) + adj)) * posAdjustAmount;
+    }
+    // x = cos(degtorad(radtodeg(ang) + 225)) * sideLength;
+    // y = sin(degtorad(radtodeg(ang) + 225)) * sideLength;
+    // x=y=0;
 
     size = (ang3 <= PI / 4.0f)
         ?distance(tri2.p2.x + x, tri2.p2.y - y, tri2.p3.x, tri2.p3.y)/triangleSize
@@ -696,9 +712,27 @@ void fillTriangle(Triangle triangle, float rr, float gg, float bb)
     lineto(tri2.p2.x, tri2.p2.y);
     lineto(tri2.p3.x, tri2.p3.y);
     lineto(tri2.p1.x, tri2.p1.y);*/
+    
+    if (trianglePosAdjust) sizeAdjust = 1.03;
+    else sizeAdjust = 1;
 
     SendActivationEvent("tri.0");
-    draw_from("tri", tri2.p2.x + x, tri2.p2.y - y, size);
+    draw_from("tri", tri2.p2.x + x + xAdjust*size*sizeAdjust, tri2.p2.y - y - yAdjust*size*sizeAdjust, size*sizeAdjust);
+    
+    /* setpen(255, 0, 255, 0, 2);
+    putpixel(tri2.p2.x + x + xAdjust*size*sizeAdjust, tri2.p2.y - y - yAdjust*size*sizeAdjust);
+    setpen(255, 255, 0, 0, 1);
+    moveto(tri2.p2.x + x + xAdjust*size*sizeAdjust, tri2.p2.y - y - yAdjust*size*sizeAdjust);
+    lineto(tri2.p3.x, tri2.p3.y); */
+    
+    // if (trianglePosAdjust)
+    // {
+        // float adj = 225;
+        // xAdjust = cos(degtorad(direction(tri2.p2.x + x, tri2.p2.y - y,
+                        // tri2.p1.x, tri2.p1.y) + adj)) * posAdjustAmount;
+        // yAdjust = sin(degtorad(direction(tri2.p2.x + x, tri2.p2.y - y,
+                        // tri2.p1.x, tri2.p1.y) + adj)) * posAdjustAmount;
+    // }
 
     size = ((ang1 - (PI / 2.0f - ang3)) <= PI / 4.0f)
         ?distance(tri2.p2.x + x, tri2.p2.y - y, tri2.p1.x, tri2.p1.y)/triangleSize
@@ -709,7 +743,13 @@ void fillTriangle(Triangle triangle, float rr, float gg, float bb)
                         tri2.p1.x, tri2.p1.y)/2.0f),
                         rr, gg, bb);
     SendActivationEvent("tri.0");
-    draw_from("tri", tri2.p2.x + x, tri2.p2.y - y, size);
+    draw_from("tri", tri2.p2.x + x + xAdjust*size*sizeAdjust, tri2.p2.y - y - yAdjust*size*sizeAdjust, size*sizeAdjust);
+    
+    /* setpen(255, 0, 255, 0, 2);
+    putpixel(tri2.p2.x + x + xAdjust*size*sizeAdjust, tri2.p2.y - y - yAdjust*size*sizeAdjust);
+    setpen(255, 255, 0, 0, 1);
+    moveto(tri2.p2.x + x + xAdjust*size*sizeAdjust, tri2.p2.y - y - yAdjust*size*sizeAdjust);
+    lineto(tri2.p1.x, tri2.p1.y); */
 
     /*setpen(rr, gg, bb, 0, 2);
     moveto(tri2.p2.x + x, tri2.p2.y - y);
