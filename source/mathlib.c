@@ -405,6 +405,12 @@ Matrix4x4 multiplyMatrices(Matrix4x4 a, Matrix4x4 b)
     return result;
 }
 
+// Adapted from the Microsoft .NET Reference Source Matrix4x4 Invert function implementation.
+// The .NET Reference Source is distributed with the MIT License, and this part of the
+// project is used here in compliance to the license terms. The details of the license are
+// listed in the LICENSE file.
+// Source:
+// https://github.com/microsoft/referencesource/blob/51cf7850defa8a17d815b4700b67116e3fa283c2/System.Numerics/System/Numerics/Matrix4x4.cs#L1307
 Matrix4x4 Invert(Matrix4x4 matrix)
 {
     Matrix4x4 result;
